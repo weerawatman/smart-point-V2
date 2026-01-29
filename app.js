@@ -334,8 +334,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 function updateDashboard() {
     const user = APP_STATE.currentUser;
 
-    if (user.role === 'employee') {
-        const employee = APP_STATE.employees.find(e => e.employee_id === user.employee_id);
+    const employeeRecord = findEmployeeRecord(user?.employee_id);
+
+    if (user.role === 'employee' || employeeRecord) {
+        const employee = employeeRecord;
         if (employee) {
             document.getElementById('currentPoints').textContent = employee.points;
             document.getElementById('totalEarned').textContent = employee.total_earned ?? employee.totalEarned ?? 0;
@@ -350,12 +352,12 @@ function updateDashboard() {
 
             // Count redemptions
             const redemptions = APP_STATE.transactions.filter(t =>
-                (t.employee_id === user.employee_id || t.employeeId === user.employee_id) && t.type === 'redeem'
+                (normalizeEmployeeId(t.employee_id || t.employeeId) === normalizeEmployeeId(user.employee_id)) && t.type === 'redeem'
             );
             document.getElementById('totalRedeemed').textContent = redemptions.length;
         }
     } else {
-        // Manager view - show summary
+        // Manager/Admin summary view - show overview when no employee record
         const totalAllocations = APP_STATE.allocations.length;
         const thisMonth = APP_STATE.allocations.filter(a => isThisMonth(a.created_at)).length;
 
@@ -393,7 +395,7 @@ function renderRecentActivity() {
     if (user.role === 'employee') {
         // Show employee's allocations and redemptions
         const employeeAllocations = APP_STATE.allocations
-            .filter(a => a.employee_id === user.employee_id || a.employeeId === user.employee_id)
+            .filter(a => normalizeEmployeeId(a.employee_id || a.employeeId) === normalizeEmployeeId(user.employee_id))
             .map(a => ({
                 type: 'earned',
                 title: `ได้รับ ${a.points} คะแนน`,
@@ -403,7 +405,7 @@ function renderRecentActivity() {
             }));
 
         const employeeRedemptions = APP_STATE.transactions
-            .filter(t => (t.employee_id === user.employee_id || t.employeeId === user.employee_id) && t.type === 'redeem')
+            .filter(t => normalizeEmployeeId(t.employee_id || t.employeeId) === normalizeEmployeeId(user.employee_id) && t.type === 'redeem')
             .map(t => ({
                 type: 'redeemed',
                 title: `แลก ${t.reward_name || t.rewardName}`,
@@ -416,7 +418,7 @@ function renderRecentActivity() {
     } else {
         // Show manager's recent allocations
         activities = APP_STATE.allocations
-            .filter(a => a.manager_id === user.employee_id || a.managerId === user.employee_id)
+            .filter(a => normalizeEmployeeId(a.manager_id || a.managerId) === normalizeEmployeeId(user.employee_id))
             .map(a => ({
                 type: 'allocated',
                 title: `ให้คะแนน ${a.employee_name || a.employeeName}`,
@@ -474,7 +476,7 @@ function renderRewards() {
     }
 
     const userPoints = APP_STATE.currentUser.role === 'employee'
-        ? APP_STATE.employees.find(e => e.employee_id === APP_STATE.currentUser.employee_id)?.points || 0
+        ? (findEmployeeRecord(APP_STATE.currentUser.employee_id)?.points || 0)
         : 0;
 
     grid.innerHTML = filtered.map(reward => `
@@ -527,7 +529,7 @@ function showRedemptionModal(rewardId) {
     if (APP_STATE.currentUser.role !== 'employee') return;
 
     const reward = APP_STATE.rewards.find(r => r.id === rewardId);
-    const employee = APP_STATE.employees.find(e => e.employee_id === APP_STATE.currentUser.employee_id);
+    const employee = findEmployeeRecord(APP_STATE.currentUser.employee_id);
 
     if (!reward || !employee) return;
 
@@ -585,7 +587,7 @@ function closeRedemptionModal() {
 
 function confirmRedemption(rewardId) {
     const reward = APP_STATE.rewards.find(r => r.id === rewardId);
-    const employee = APP_STATE.employees.find(e => e.employee_id === APP_STATE.currentUser.employee_id);
+    const employee = findEmployeeRecord(APP_STATE.currentUser.employee_id);
 
     if (!reward || !employee || employee.points < reward.points) return;
 
@@ -613,6 +615,15 @@ function confirmRedemption(rewardId) {
 // ===========================
 // Manager Allocation
 // ===========================
+function getManagerRemainingAllocations() {
+    const thisMonthAllocations = APP_STATE.allocations.filter(a =>
+        a.manager_id === APP_STATE.currentUser.employee_id &&
+        isThisMonth(a.created_at)
+    );
+
+    return Math.max(0, 5 - thisMonthAllocations.length);
+}
+
 function renderAllocationForm() {
     const employeeSelect = document.getElementById('employeeSelect');
 
@@ -755,10 +766,47 @@ async function handleAllocationSubmit(e) {
 
         showToast(`ให้คะแนนสำเร็จ! ${employee.name} ได้รับ ${points} คะแนน 🎉`, 'success');
         renderAllocationHistory();
+
+        const remaining = APP_STATE.currentUser.role === 'admin'
+            ? null
+            : getManagerRemainingAllocations();
+        showAllocationResultModal({
+            employeeName: employee.name,
+            remaining,
+            isAdmin: APP_STATE.currentUser.role === 'admin'
+        });
     } catch (error) {
         console.error('Error saving allocation:', error);
         showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
     }
+}
+
+function showAllocationResultModal({ employeeName, remaining, isAdmin }) {
+    const modal = document.getElementById('allocationResultModal');
+    const body = document.getElementById('allocationResultBody');
+
+    body.innerHTML = `
+        <div class="allocation-result">
+            <div class="allocation-result-icon">✅</div>
+            <div class="allocation-result-title">ให้คะแนนเรียบร้อย</div>
+            <div class="allocation-result-card">
+                <div class="allocation-result-row">
+                    <span>ผู้รับคะแนน</span>
+                    <strong>${employeeName}</strong>
+                </div>
+                <div class="allocation-result-row">
+                    <span>โควต้าคงเหลือเดือนนี้</span>
+                    <strong>${isAdmin ? 'ไม่จำกัด' : `${remaining} คะแนน`}</strong>
+                </div>
+            </div>
+        </div>
+    `;
+
+    modal.classList.add('active');
+}
+
+function closeAllocationResultModal() {
+    document.getElementById('allocationResultModal').classList.remove('active');
 }
 
 function renderAllocationHistory() {
@@ -832,7 +880,7 @@ function renderHistory() {
     if (user.role === 'employee') {
         // Employee allocations
         const allocations = APP_STATE.allocations
-            .filter(a => a.employee_id === user.employee_id || a.employeeId === user.employee_id)
+            .filter(a => normalizeEmployeeId(a.employee_id || a.employeeId) === normalizeEmployeeId(user.employee_id))
             .map(a => ({
                 type: 'earned',
                 title: `ได้รับคะแนนจาก ${a.manager_name || a.managerName}`,
@@ -843,7 +891,7 @@ function renderHistory() {
 
         // Employee redemptions
         const redemptions = APP_STATE.transactions
-            .filter(t => (t.employee_id === user.employee_id || t.employeeId === user.employee_id) && t.type === 'redeem')
+            .filter(t => normalizeEmployeeId(t.employee_id || t.employeeId) === normalizeEmployeeId(user.employee_id) && t.type === 'redeem')
             .map(t => ({
                 type: 'redeemed',
                 title: `แลกของรางวัล`,
@@ -856,7 +904,7 @@ function renderHistory() {
     } else {
         // Manager allocations
         items = APP_STATE.allocations
-            .filter(a => a.manager_id === user.employee_id || a.managerId === user.employee_id)
+            .filter(a => normalizeEmployeeId(a.manager_id || a.managerId) === normalizeEmployeeId(user.employee_id))
             .map(a => ({
                 type: 'earned',
                 title: `ให้คะแนน ${a.employee_name || a.employeeName}`,
@@ -910,6 +958,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===========================
 // Utility Functions
 // ===========================
+function normalizeEmployeeId(value) {
+    return (value || '').toString().trim().toLowerCase();
+}
+
+function findEmployeeRecord(employeeId) {
+    const normalized = normalizeEmployeeId(employeeId);
+    return APP_STATE.employees.find(e => normalizeEmployeeId(e.employee_id) === normalized) || null;
+}
+
 function isThisMonth(dateString) {
     const date = new Date(dateString);
     const now = new Date();
