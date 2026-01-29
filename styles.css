@@ -1276,7 +1276,7 @@ body::before {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-md);
+    padding: 0.6rem 0.75rem;
     background: var(--bg-card);
     border-radius: var(--radius-md);
     border-left: 4px solid var(--color-primary);
@@ -1298,16 +1298,17 @@ body::before {
 
 .history-title {
     font-weight: 600;
-    margin-bottom: var(--spacing-xs);
+    margin-bottom: 0.2rem;
+    font-size: 0.95rem;
 }
 
 .history-desc {
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 .history-points {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 700;
 }
 
@@ -1321,7 +1322,7 @@ body::before {
 
 .history-date {
     color: var(--text-muted);
-    font-size: 0.85rem;
+    font-size: 0.75rem;
 }
 
 /* ===========================
