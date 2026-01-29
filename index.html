@@ -55,11 +55,11 @@
                 <nav class="nav-menu">
                     <button class="nav-btn active" data-view="dashboard">
                         <span class="icon">📊</span>
-                        <span>Dashboard</span>
+                        <span>คะแนนของคุณ</span>
                     </button>
                     <button class="nav-btn" data-view="rewards">
                         <span class="icon">🎁</span>
-                        <span>Rewards</span>
+                        <span>รางวัล</span>
                     </button>
                     <button class="nav-btn manager-only" data-view="allocate" style="display: none;">
                         <span class="icon">⭐</span>
@@ -172,12 +172,48 @@
                     <div class="card allocation-form-card">
                         <h3>ฟอร์มให้คะแนน</h3>
                         <form id="allocationForm" class="allocation-form">
-                            <div class="form-group">
+                            <div class="form-group admin-only" id="allocationModeGroup" style="display: none;">
+                                <label>รูปแบบการให้คะแนน *</label>
+                                <div class="allocation-mode">
+                                    <label class="allocation-mode-option">
+                                        <input type="radio" name="allocationMode" value="single" checked>
+                                        <span>รายบุคคล</span>
+                                    </label>
+                                    <label class="allocation-mode-option">
+                                        <input type="radio" name="allocationMode" value="group">
+                                        <span>แบบกลุ่ม</span>
+                                    </label>
+                                    <label class="allocation-mode-option">
+                                        <input type="radio" name="allocationMode" value="excel">
+                                        <span>นำเข้าไฟล์</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-group" id="singleEmployeeSelectGroup">
                                 <label for="employeeSelect">เลือกพนักงาน *</label>
                                 <select id="employeeSelect" required>
                                     <option value="">-- เลือกพนักงาน --</option>
                                 </select>
                                 <div class="allocation-info" id="allocationInfo"></div>
+                            </div>
+
+                            <div class="form-group admin-only" id="groupEmployeeSelectGroup" style="display: none;">
+                                <label>เลือกพนักงานแบบกลุ่ม *</label>
+                                <input type="text" id="groupSearch" placeholder="ค้นหาพนักงาน...">
+                                <div class="group-actions">
+                                    <button type="button" class="btn-outline" id="selectAllEmployees">เลือกทั้งหมด</button>
+                                    <button type="button" class="btn-outline" id="clearAllEmployees">ยกเลิกทั้งหมด</button>
+                                </div>
+                                <div class="group-list" id="groupEmployeeList"></div>
+                                <div class="allocation-info" id="groupSelectionInfo"></div>
+                            </div>
+
+                            <div class="form-group admin-only" id="excelUploadGroup" style="display: none;">
+                                <label>นำเข้ารายการจากไฟล์ *</label>
+                                <input type="file" id="excelFile" accept=".csv">
+                                <div class="allocation-info" id="excelImportInfo"></div>
+                                <p class="points-note">รองรับไฟล์ .csv เท่านั้น (Excel สามารถ Save As เป็น CSV ได้)</p>
                             </div>
 
                             <div class="form-group">
@@ -186,6 +222,12 @@
                                     <span class="points-badge">1 คะแนน</span>
                                     <p class="points-note">ให้คะแนนทีละ 1 คะแนนต่อครั้ง</p>
                                 </div>
+                            </div>
+
+                            <div class="form-group admin-only" id="adminPointsGroup" style="display: none;">
+                                <label for="pointsInput">จำนวนคะแนน *</label>
+                                <input type="number" id="pointsInput" min="1" value="1">
+                                <p class="points-note">สำหรับ Admin: กำหนดคะแนนได้ไม่จำกัด</p>
                             </div>
 
                             <div class="form-group">

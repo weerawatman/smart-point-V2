@@ -22,7 +22,8 @@ const APP_STATE = {
     employees: [],
     rewards: [],
     allocations: [],
-    transactions: []
+    transactions: [],
+    adminBulkRows: []
 };
 
 // SMART Culture Values
@@ -244,6 +245,7 @@ function handleLogin(e) {
 
     updateUserInfo();
     showManagerFeatures();
+    showAdminFeatures();
     switchView('dashboard');
 }
 
@@ -275,6 +277,15 @@ function showManagerFeatures() {
 
     managerElements.forEach(el => {
         el.style.display = isManager ? '' : 'none';
+    });
+}
+
+function showAdminFeatures() {
+    const adminElements = document.querySelectorAll('.admin-only');
+    const isAdmin = APP_STATE.currentUser?.role === 'admin';
+
+    adminElements.forEach(el => {
+        el.style.display = isAdmin ? '' : 'none';
     });
 }
 
@@ -626,17 +637,30 @@ function getManagerRemainingAllocations() {
 
 function renderAllocationForm() {
     const employeeSelect = document.getElementById('employeeSelect');
+    const groupEmployeeList = document.getElementById('groupEmployeeList');
+    const allocationModeInputs = document.querySelectorAll('input[name="allocationMode"]');
+    const selectAllBtn = document.getElementById('selectAllEmployees');
+    const clearAllBtn = document.getElementById('clearAllEmployees');
+    const excelFile = document.getElementById('excelFile');
 
     // Populate employee dropdown
     employeeSelect.innerHTML = '<option value="">-- เลือกพนักงาน --</option>' +
-        APP_STATE.employees.map(emp => {
-            const roleLabel = emp.role === 'admin'
-                ? 'Admin'
-                : emp.role === 'manager'
-                    ? 'Manager'
-                    : 'Employee';
-            return `<option value="${emp.employee_id}">${emp.employee_id} - ${emp.name} (${roleLabel})</option>`;
-        }).join('');
+        APP_STATE.employees
+            .filter(emp => normalizeEmployeeId(emp.employee_id) !== normalizeEmployeeId(APP_STATE.currentUser.employee_id))
+            .map(emp => `<option value="${emp.employee_id}">${emp.employee_id} - ${emp.name}</option>`)
+            .join('');
+
+    if (groupEmployeeList) {
+        groupEmployeeList.innerHTML = APP_STATE.employees
+            .filter(emp => normalizeEmployeeId(emp.employee_id) !== normalizeEmployeeId(APP_STATE.currentUser.employee_id))
+            .map(emp => `
+                <label class="group-item">
+                    <input type="checkbox" value="${emp.employee_id}">
+                    <span>${emp.employee_id} - ${emp.name}</span>
+                </label>
+            `)
+            .join('');
+    }
 
     // Setup form handlers
     const form = document.getElementById('allocationForm');
@@ -649,9 +673,173 @@ function renderAllocationForm() {
 
     employeeSelect.addEventListener('change', updateAllocationInfo);
 
+    allocationModeInputs.forEach(input => {
+        input.addEventListener('change', updateAllocationModeView);
+    });
+
+    const groupSearch = document.getElementById('groupSearch');
+    if (groupSearch) {
+        groupSearch.addEventListener('input', (e) => {
+            const search = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('.group-item');
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(search) ? '' : 'none';
+            });
+        });
+    }
+
+    if (groupEmployeeList) {
+        groupEmployeeList.addEventListener('change', updateGroupSelectionInfo);
+    }
+
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', () => {
+            document.querySelectorAll('#groupEmployeeList input[type="checkbox"]').forEach(input => {
+                input.checked = true;
+            });
+            updateGroupSelectionInfo();
+        });
+    }
+
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', () => {
+            document.querySelectorAll('#groupEmployeeList input[type="checkbox"]').forEach(input => {
+                input.checked = false;
+            });
+            updateGroupSelectionInfo();
+        });
+    }
+
+    if (excelFile) {
+        excelFile.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            importAdminCsv(file);
+        });
+    }
+
     form.onsubmit = handleAllocationSubmit;
 
+    updateAllocationModeView();
+
     renderAllocationHistory();
+}
+
+function updateAllocationModeView() {
+    const mode = document.querySelector('input[name="allocationMode"]:checked')?.value || 'single';
+    const singleGroup = document.getElementById('singleEmployeeSelectGroup');
+    const groupGroup = document.getElementById('groupEmployeeSelectGroup');
+    const excelGroup = document.getElementById('excelUploadGroup');
+    const adminPointsGroup = document.getElementById('adminPointsGroup');
+    const fixedPointsGroup = document.querySelector('.points-fixed')?.parentElement;
+
+    if (APP_STATE.currentUser.role !== 'admin') {
+        if (singleGroup) singleGroup.style.display = '';
+        if (groupGroup) groupGroup.style.display = 'none';
+        if (excelGroup) excelGroup.style.display = 'none';
+        if (adminPointsGroup) adminPointsGroup.style.display = 'none';
+        if (fixedPointsGroup) fixedPointsGroup.style.display = '';
+        return;
+    }
+
+    if (singleGroup) singleGroup.style.display = mode === 'single' ? '' : 'none';
+    if (groupGroup) groupGroup.style.display = mode === 'group' ? '' : 'none';
+    if (excelGroup) excelGroup.style.display = mode === 'excel' ? '' : 'none';
+    if (adminPointsGroup) adminPointsGroup.style.display = mode === 'excel' ? 'none' : '';
+    if (fixedPointsGroup) fixedPointsGroup.style.display = 'none';
+    updateGroupSelectionInfo();
+    updateExcelImportInfo();
+}
+
+function getSelectedGroupEmployees() {
+    const selected = Array.from(document.querySelectorAll('#groupEmployeeList input[type="checkbox"]:checked'))
+        .map(input => input.value);
+    return selected;
+}
+
+function updateGroupSelectionInfo() {
+    const infoDiv = document.getElementById('groupSelectionInfo');
+    if (!infoDiv) return;
+
+    const selected = getSelectedGroupEmployees();
+    if (selected.length === 0) {
+        infoDiv.className = 'allocation-info warning';
+        infoDiv.textContent = 'กรุณาเลือกพนักงานอย่างน้อย 1 คน';
+        return;
+    }
+
+    infoDiv.className = 'allocation-info success';
+    infoDiv.textContent = `เลือกแล้ว ${selected.length} คน`;
+}
+
+function updateExcelImportInfo() {
+    const infoDiv = document.getElementById('excelImportInfo');
+    if (!infoDiv) return;
+
+    if (!APP_STATE.adminBulkRows.length) {
+        infoDiv.className = 'allocation-info warning';
+        infoDiv.textContent = 'ยังไม่มีข้อมูลนำเข้า';
+        return;
+    }
+
+    infoDiv.className = 'allocation-info success';
+    infoDiv.textContent = `นำเข้าข้อมูลแล้ว ${APP_STATE.adminBulkRows.length} รายการ`;
+}
+
+function importAdminCsv(file) {
+    const infoDiv = document.getElementById('excelImportInfo');
+    const reader = new FileReader();
+
+    reader.onload = () => {
+        const text = reader.result?.toString() || '';
+        APP_STATE.adminBulkRows = parseCsvRows(text);
+        updateExcelImportInfo();
+        if (!APP_STATE.adminBulkRows.length) {
+            showToast('ไม่พบข้อมูลในไฟล์ CSV', 'error');
+        }
+    };
+
+    reader.onerror = () => {
+        if (infoDiv) {
+            infoDiv.className = 'allocation-info error';
+            infoDiv.textContent = 'อ่านไฟล์ไม่สำเร็จ';
+        }
+        showToast('อ่านไฟล์ไม่สำเร็จ', 'error');
+    };
+
+    reader.readAsText(file);
+}
+
+function parseCsvRows(text) {
+    const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+    if (lines.length === 0) return [];
+
+    const delimiter = lines[0].includes('\t') ? '\t' : lines[0].includes(';') ? ';' : ',';
+    const header = lines[0].split(delimiter).map(h => h.trim().toLowerCase());
+
+    const employeeIndex = header.findIndex(h => h.includes('employee') || h.includes('รหัส'));
+    const pointsIndex = header.findIndex(h => h.includes('point') || h.includes('คะแนน'));
+    const reasonIndex = header.findIndex(h => h.includes('reason') || h.includes('เหตุผล'));
+
+    const rows = [];
+    for (let i = 1; i < lines.length; i += 1) {
+        const cols = lines[i].split(delimiter).map(c => c.trim());
+        const employeeId = cols[employeeIndex] || cols[0];
+        const pointsRaw = cols[pointsIndex] || cols[1] || '1';
+        const reason = cols[reasonIndex] || cols[2] || '';
+
+        if (!employeeId) continue;
+        const points = Math.max(1, Number(pointsRaw) || 1);
+
+        rows.push({
+            employeeId,
+            points,
+            reason
+        });
+    }
+
+    return rows;
 }
 
 function updateAllocationInfo() {
@@ -692,14 +880,25 @@ async function handleAllocationSubmit(e) {
         return;
     }
 
+    const mode = document.querySelector('input[name="allocationMode"]:checked')?.value || 'single';
     const employeeId = document.getElementById('employeeSelect').value;
-    const points = 1; // Fixed at 1 point per allocation
+    const pointsInput = document.getElementById('pointsInput');
+    const points = APP_STATE.currentUser.role === 'admin'
+        ? Math.max(1, Number(pointsInput?.value || 1))
+        : 1; // Fixed at 1 point per allocation
     const reason = document.getElementById('reasonInput').value;
     const smartValue = document.querySelector('input[name="smartValue"]:checked')?.value;
 
-    if (!employeeId || !reason || !smartValue) {
+    if ((!employeeId && mode === 'single') || !reason || !smartValue) {
         showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
         return;
+    }
+
+    if (mode === 'single') {
+        if (normalizeEmployeeId(employeeId) === normalizeEmployeeId(APP_STATE.currentUser.employee_id)) {
+            showToast('ไม่สามารถให้คะแนนตัวเองได้', 'error');
+            return;
+        }
     }
 
     if (reason.length < 10) {
@@ -718,6 +917,179 @@ async function handleAllocationSubmit(e) {
             showToast('คุณให้คะแนนครบ 5 ครั้งในเดือนนี้แล้ว (โควต้าหมด)', 'error');
             return;
         }
+
+        const alreadyAllocatedToEmployee = thisMonthAllocations.some(a =>
+            normalizeEmployeeId(a.employee_id || a.employeeId) === normalizeEmployeeId(employeeId)
+        );
+
+        if (alreadyAllocatedToEmployee) {
+            showToast('เดือนนี้คุณให้คะแนนพนักงานคนนี้แล้ว', 'error');
+            return;
+        }
+    }
+
+    if (APP_STATE.currentUser.role === 'admin' && mode === 'group') {
+        const selectedEmployeeIds = getSelectedGroupEmployees();
+        if (selectedEmployeeIds.length === 0) {
+            showToast('กรุณาเลือกพนักงานอย่างน้อย 1 คน', 'error');
+            return;
+        }
+
+        const allocationsPayload = selectedEmployeeIds
+            .filter(id => normalizeEmployeeId(id) !== normalizeEmployeeId(APP_STATE.currentUser.employee_id))
+            .map(id => {
+                const employee = APP_STATE.employees.find(e => normalizeEmployeeId(e.employee_id) === normalizeEmployeeId(id));
+                return {
+                    manager_id: APP_STATE.currentUser.employee_id,
+                    manager_name: APP_STATE.currentUser.name,
+                    employee_id: id,
+                    employee_name: employee?.name || id,
+                    points: points,
+                    reason: reason,
+                    smart_value: smartValue
+                };
+            });
+
+        try {
+            const { data: allocationRows, error: allocError } = await supabase
+                .from('allocations')
+                .insert(allocationsPayload)
+                .select();
+
+            if (allocError) throw allocError;
+
+            const updatePromises = selectedEmployeeIds.map(id => {
+                const employee = APP_STATE.employees.find(e => normalizeEmployeeId(e.employee_id) === normalizeEmployeeId(id));
+                if (!employee) return null;
+                const totalEarned = employee.total_earned ?? employee.totalEarned ?? 0;
+                return supabase
+                    .from('employees')
+                    .update({
+                        points: employee.points + points,
+                        total_earned: totalEarned + points,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('employee_id', employee.employee_id);
+            }).filter(Boolean);
+
+            await Promise.all(updatePromises);
+
+            selectedEmployeeIds.forEach(id => {
+                const employee = APP_STATE.employees.find(e => normalizeEmployeeId(e.employee_id) === normalizeEmployeeId(id));
+                if (employee) {
+                    employee.points += points;
+                    const totalEarned = employee.total_earned ?? employee.totalEarned ?? 0;
+                    employee.total_earned = totalEarned + points;
+                }
+            });
+
+            if (allocationRows?.length) {
+                APP_STATE.allocations = allocationRows.concat(APP_STATE.allocations);
+            }
+
+            e.target.reset();
+            document.getElementById('charCount').textContent = '0';
+            updateAllocationInfo();
+            updateGroupSelectionInfo();
+
+            showToast(`ให้คะแนนสำเร็จ! ${selectedEmployeeIds.length} คน 🎉`, 'success');
+            renderAllocationHistory();
+
+            showAllocationResultModal({
+                employeeName: `${selectedEmployeeIds.length} คน`,
+                remaining: null,
+                isAdmin: true
+            });
+        } catch (error) {
+            console.error('Error saving allocation:', error);
+            showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+        }
+        return;
+    }
+
+    if (APP_STATE.currentUser.role === 'admin' && mode === 'excel') {
+        if (!APP_STATE.adminBulkRows.length) {
+            showToast('กรุณาแนบไฟล์ CSV ที่มีข้อมูลให้คะแนน', 'error');
+            return;
+        }
+
+        const rows = APP_STATE.adminBulkRows.filter(row =>
+            normalizeEmployeeId(row.employeeId) !== normalizeEmployeeId(APP_STATE.currentUser.employee_id)
+        );
+
+        if (!rows.length) {
+            showToast('ไม่มีรายการที่สามารถให้คะแนนได้', 'error');
+            return;
+        }
+
+        const allocationsPayload = rows.map(row => {
+            const employee = APP_STATE.employees.find(e => normalizeEmployeeId(e.employee_id) === normalizeEmployeeId(row.employeeId));
+            return {
+                manager_id: APP_STATE.currentUser.employee_id,
+                manager_name: APP_STATE.currentUser.name,
+                employee_id: row.employeeId,
+                employee_name: employee?.name || row.employeeId,
+                points: Math.max(1, Number(row.points) || 1),
+                reason: row.reason || reason,
+                smart_value: smartValue
+            };
+        });
+
+        try {
+            const { data: allocationRows, error: allocError } = await supabase
+                .from('allocations')
+                .insert(allocationsPayload)
+                .select();
+
+            if (allocError) throw allocError;
+
+            const updatePromises = allocationsPayload.map(row => {
+                const employee = APP_STATE.employees.find(e => normalizeEmployeeId(e.employee_id) === normalizeEmployeeId(row.employee_id));
+                if (!employee) return null;
+                const totalEarned = employee.total_earned ?? employee.totalEarned ?? 0;
+                return supabase
+                    .from('employees')
+                    .update({
+                        points: employee.points + row.points,
+                        total_earned: totalEarned + row.points,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('employee_id', employee.employee_id);
+            }).filter(Boolean);
+
+            await Promise.all(updatePromises);
+
+            allocationsPayload.forEach(row => {
+                const employee = APP_STATE.employees.find(e => normalizeEmployeeId(e.employee_id) === normalizeEmployeeId(row.employee_id));
+                if (employee) {
+                    employee.points += row.points;
+                    const totalEarned = employee.total_earned ?? employee.totalEarned ?? 0;
+                    employee.total_earned = totalEarned + row.points;
+                }
+            });
+
+            if (allocationRows?.length) {
+                APP_STATE.allocations = allocationRows.concat(APP_STATE.allocations);
+            }
+
+            e.target.reset();
+            APP_STATE.adminBulkRows = [];
+            updateAllocationInfo();
+            updateExcelImportInfo();
+
+            showToast(`ให้คะแนนสำเร็จ! ${allocationsPayload.length} รายการ 🎉`, 'success');
+            renderAllocationHistory();
+
+            showAllocationResultModal({
+                employeeName: `${allocationsPayload.length} รายการ`,
+                remaining: null,
+                isAdmin: true
+            });
+        } catch (error) {
+            console.error('Error saving allocation:', error);
+            showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+        }
+        return;
     }
 
     // Find employee
