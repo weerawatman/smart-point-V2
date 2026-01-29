@@ -48,16 +48,28 @@ const SMART_VALUES = {
 // ===========================
 async function initializeDemoData() {
     console.log('🔄 Loading data from Supabase...');
+    console.log('📡 Supabase URL:', SUPABASE_URL);
 
     try {
-        // Fetch users
+        // Test connection first
+        console.log('Testing Supabase connection...');
+
+        // Fetch users with timeout
         const { data: users, error: usersError } = await supabase
             .from('users')
             .select('*');
 
-        if (usersError) throw usersError;
+        if (usersError) {
+            console.error('❌ Users error:', usersError);
+            throw new Error(`Failed to load users: ${usersError.message}`);
+        }
+
+        if (!users || users.length === 0) {
+            throw new Error('No users found in database. Please run the SQL script to insert demo data.');
+        }
+
         APP_STATE.users = users;
-        console.log('✅ Loaded users:', users);
+        console.log('✅ Loaded users:', users.length, 'users');
 
         // Fetch employees
         const { data: employees, error: employeesError } = await supabase
@@ -98,11 +110,21 @@ async function initializeDemoData() {
 
     } catch (error) {
         console.error('❌ Error loading data from Supabase:', error);
-        alert('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: ' + error.message);
 
-        // Hide loading indicator
+        // Hide loading indicator and show error
         const loadingDiv = document.getElementById('loadingIndicator');
-        if (loadingDiv) loadingDiv.style.display = 'none';
+        if (loadingDiv) {
+            loadingDiv.innerHTML = `
+                <div style="color: #ef4444; padding: 20px;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">❌</div>
+                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">เกิดข้อผิดพลาด</div>
+                    <div style="font-size: 14px; opacity: 0.8;">${error.message}</div>
+                    <div style="margin-top: 20px; font-size: 12px; opacity: 0.6;">
+                        กรุณาตรวจสอบ Console (F12) สำหรับรายละเอียดเพิ่มเติม
+                    </div>
+                </div>
+            `;
+        }
     }
 
     // Demo Rewards
