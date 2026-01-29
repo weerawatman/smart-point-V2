@@ -1,4 +1,13 @@
 // ===========================
+// Supabase Configuration
+// ===========================
+const SUPABASE_URL = 'https://ynywmrupnuiasomqlndh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlueXdtcnVwbnVpYXNvbXFsbmRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NjMzNzgsImV4cCI6MjA4NTIzOTM3OH0.qoz5BuA_RL5sStGtZl33uV6n4Nxie1AwC0GHOiZ5V4w';
+
+// Initialize Supabase client
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ===========================
 // Application State
 // ===========================
 const APP_STATE = {
@@ -35,27 +44,49 @@ const SMART_VALUES = {
 };
 
 // ===========================
-// Initialize Demo Data
+// Initialize Data from Supabase
 // ===========================
-function initializeDemoData() {
-    // Demo Users (Employee ID: password is always 123456)
-    APP_STATE.users = [
-        { id: 'MGR001', password: '123456', name: 'ผู้จัดการ สมศักดิ์', role: 'manager', avatar: '👔' },
-        { id: 'EMP001', password: '123456', name: 'สมชาย ใจดี', role: 'employee', avatar: '👤' },
-        { id: 'EMP002', password: '123456', name: 'สมหญิง รักงาน', role: 'employee', avatar: '👤' },
-        { id: 'EMP003', password: '123456', name: 'วิชัย มานะ', role: 'employee', avatar: '👤' },
-        { id: 'EMP004', password: '123456', name: 'ปรียา สุขใจ', role: 'employee', avatar: '👤' },
-        { id: 'EMP005', password: '123456', name: 'ธนา เก่งกาจ', role: 'employee', avatar: '👤' }
-    ];
+async function initializeDemoData() {
+    try {
+        // Fetch users
+        const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('*');
 
-    // Demo Employees (for points tracking)
-    APP_STATE.employees = [
-        { id: 'EMP001', name: 'สมชาย ใจดี', points: 150, totalEarned: 250, tier: 'Silver' },
-        { id: 'EMP002', name: 'สมหญิง รักงาน', points: 80, totalEarned: 120, tier: 'Bronze' },
-        { id: 'EMP003', name: 'วิชัย มานะ', points: 220, totalEarned: 350, tier: 'Gold' },
-        { id: 'EMP004', name: 'ปรียา สุขใจ', points: 45, totalEarned: 90, tier: 'Bronze' },
-        { id: 'EMP005', name: 'ธนา เก่งกาจ', points: 180, totalEarned: 280, tier: 'Silver' }
-    ];
+        if (usersError) throw usersError;
+        APP_STATE.users = users;
+
+        // Fetch employees
+        const { data: employees, error: employeesError } = await supabase
+            .from('employees')
+            .select('*');
+
+        if (employeesError) throw employeesError;
+        APP_STATE.employees = employees;
+
+        // Fetch allocations
+        const { data: allocations, error: allocationsError } = await supabase
+            .from('allocations')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (allocationsError) throw allocationsError;
+        APP_STATE.allocations = allocations || [];
+
+        // Fetch transactions
+        const { data: transactions, error: transactionsError } = await supabase
+            .from('transactions')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (transactionsError) throw transactionsError;
+        APP_STATE.transactions = transactions || [];
+
+        console.log('✅ Data loaded from Supabase successfully');
+    } catch (error) {
+        console.error('❌ Error loading data from Supabase:', error);
+        showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
+    }
 
     // Demo Rewards
     APP_STATE.rewards = [
@@ -219,8 +250,9 @@ function switchView(viewName) {
 }
 
 // Setup navigation and login
-document.addEventListener('DOMContentLoaded', () => {
-    initializeDemoData();
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize data from Supabase
+    await initializeDemoData();
 
     // Setup login form
     const loginForm = document.getElementById('loginForm');
@@ -549,8 +581,8 @@ function updateAllocationInfo() {
 
     // Check manager's monthly allocation limit (5 points total per month)
     const thisMonthAllocations = APP_STATE.allocations.filter(a =>
-        a.managerId === APP_STATE.currentUser.id &&
-        isThisMonth(a.date)
+        a.manager_id === APP_STATE.currentUser.employee_id &&
+        isThisMonth(a.created_at)
     );
 
     const totalThisMonth = thisMonthAllocations.length; // Each allocation is 1 point
@@ -568,7 +600,7 @@ function updateAllocationInfo() {
     }
 }
 
-function handleAllocationSubmit(e) {
+async function handleAllocationSubmit(e) {
     e.preventDefault();
 
     const employeeId = document.getElementById('employeeSelect').value;
@@ -588,8 +620,8 @@ function handleAllocationSubmit(e) {
 
     // Check manager's monthly limit (5 allocations total per month)
     const thisMonthAllocations = APP_STATE.allocations.filter(a =>
-        a.managerId === APP_STATE.currentUser.id &&
-        isThisMonth(a.date)
+        a.manager_id === APP_STATE.currentUser.employee_id &&
+        isThisMonth(a.created_at)
     );
 
     if (thisMonthAllocations.length >= 5) {
@@ -598,37 +630,55 @@ function handleAllocationSubmit(e) {
     }
 
     // Find employee
-    const employee = APP_STATE.employees.find(e => e.id === employeeId);
+    const employee = APP_STATE.employees.find(e => e.employee_id === employeeId);
     if (!employee) return;
 
-    // Add allocation
-    const allocation = {
-        id: 'alloc' + Date.now(),
-        managerId: APP_STATE.currentUser.id,
-        managerName: APP_STATE.currentUser.name,
-        employeeId: employeeId,
-        employeeName: employee.name,
-        points: points,
-        reason: reason,
-        smartValue: smartValue,
-        date: new Date().toISOString()
-    };
+    try {
+        // Insert allocation to Supabase
+        const { data: allocation, error: allocError } = await supabase
+            .from('allocations')
+            .insert([{
+                manager_id: APP_STATE.currentUser.employee_id,
+                manager_name: APP_STATE.currentUser.name,
+                employee_id: employeeId,
+                employee_name: employee.name,
+                points: points,
+                reason: reason,
+                smart_value: smartValue
+            }])
+            .select()
+            .single();
 
-    APP_STATE.allocations.push(allocation);
+        if (allocError) throw allocError;
 
-    // Update employee points
-    employee.points += points;
-    employee.totalEarned += points;
+        // Update employee points in Supabase
+        const { error: updateError } = await supabase
+            .from('employees')
+            .update({
+                points: employee.points + points,
+                total_earned: employee.total_earned + points,
+                updated_at: new Date().toISOString()
+            })
+            .eq('employee_id', employeeId);
 
-    saveData();
+        if (updateError) throw updateError;
 
-    // Reset form
-    e.target.reset();
-    document.getElementById('charCount').textContent = '0';
-    updateAllocationInfo();
+        // Update local state
+        employee.points += points;
+        employee.total_earned += points;
+        APP_STATE.allocations.unshift(allocation);
 
-    showToast(`ให้คะแนนสำเร็จ! ${employee.name} ได้รับ ${points} คะแนน 🎉`, 'success');
-    renderAllocationHistory();
+        // Reset form
+        e.target.reset();
+        document.getElementById('charCount').textContent = '0';
+        updateAllocationInfo();
+
+        showToast(`ให้คะแนนสำเร็จ! ${employee.name} ได้รับ ${points} คะแนน 🎉`, 'success');
+        renderAllocationHistory();
+    } catch (error) {
+        console.error('Error saving allocation:', error);
+        showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+    }
 }
 
 function renderAllocationHistory() {
@@ -815,13 +865,4 @@ function showToast(message, type = 'success') {
     setTimeout(() => {
         toast.classList.remove('show');
     }, 3000);
-}
-
-function saveData() {
-    const data = {
-        employees: APP_STATE.employees,
-        allocations: APP_STATE.allocations,
-        transactions: APP_STATE.transactions
-    };
-    localStorage.setItem('rewardsAppData', JSON.stringify(data));
 }
