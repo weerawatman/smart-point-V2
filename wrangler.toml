@@ -1,5 +1,0 @@
-name = "smart-rewards"
-compatibility_date = "2026-01-29"
-
-[site]
-bucket = "."
