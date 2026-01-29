@@ -84,7 +84,8 @@ async function initializeDemoData() {
                 *,
                 users!employees_employee_id_fkey (
                     name,
-                    avatar
+                    avatar,
+                    role
                 )
             `);
 
@@ -94,7 +95,8 @@ async function initializeDemoData() {
         APP_STATE.employees = employees.map(emp => ({
             ...emp,
             name: emp.users?.name,
-            avatar: emp.users?.avatar
+            avatar: emp.users?.avatar,
+            role: emp.users?.role
         }));
         console.log('✅ Loaded employees:', APP_STATE.employees);
 
@@ -254,13 +256,22 @@ function logout() {
 function updateUserInfo() {
     const user = APP_STATE.currentUser;
     document.getElementById('userName').textContent = user.name;
-    document.getElementById('userRole').textContent = user.role === 'manager' ? 'Manager' : 'Employee';
+    const roleLabel = user.role === 'admin'
+        ? 'Admin'
+        : user.role === 'manager'
+            ? 'Manager'
+            : 'Employee';
+    document.getElementById('userRole').textContent = roleLabel;
     document.getElementById('userAvatar').textContent = user.avatar;
+}
+
+function canAllocatePoints(user) {
+    return user?.role === 'manager' || user?.role === 'admin';
 }
 
 function showManagerFeatures() {
     const managerElements = document.querySelectorAll('.manager-only');
-    const isManager = APP_STATE.currentUser.role === 'manager';
+    const isManager = canAllocatePoints(APP_STATE.currentUser);
 
     managerElements.forEach(el => {
         el.style.display = isManager ? '' : 'none';
@@ -324,14 +335,14 @@ function updateDashboard() {
     const user = APP_STATE.currentUser;
 
     if (user.role === 'employee') {
-        const employee = APP_STATE.employees.find(e => e.id === user.id);
+        const employee = APP_STATE.employees.find(e => e.employee_id === user.employee_id);
         if (employee) {
             document.getElementById('currentPoints').textContent = employee.points;
-            document.getElementById('totalEarned').textContent = employee.totalEarned;
+            document.getElementById('totalEarned').textContent = employee.total_earned ?? employee.totalEarned ?? 0;
 
             // Update tier
             const tierBadge = document.getElementById('tierBadge');
-            const tierInfo = getTierInfo(employee.totalEarned);
+            const tierInfo = getTierInfo(employee.total_earned ?? employee.totalEarned ?? 0);
             tierBadge.innerHTML = `
                 <span class="tier-icon">${tierInfo.icon}</span>
                 <span class="tier-name">${tierInfo.name}</span>
@@ -339,7 +350,7 @@ function updateDashboard() {
 
             // Count redemptions
             const redemptions = APP_STATE.transactions.filter(t =>
-                t.employeeId === user.id && t.type === 'redeem'
+                (t.employee_id === user.employee_id || t.employeeId === user.employee_id) && t.type === 'redeem'
             );
             document.getElementById('totalRedeemed').textContent = redemptions.length;
         }
@@ -353,9 +364,10 @@ function updateDashboard() {
         document.getElementById('totalRedeemed').textContent = APP_STATE.employees.length;
 
         const tierBadge = document.getElementById('tierBadge');
+        const isAdmin = user.role === 'admin';
         tierBadge.innerHTML = `
-            <span class="tier-icon">👔</span>
-            <span class="tier-name">Manager Account</span>
+            <span class="tier-icon">${isAdmin ? '🛡️' : '👔'}</span>
+            <span class="tier-name">${isAdmin ? 'Admin Account' : 'Manager Account'}</span>
         `;
     }
 
@@ -381,36 +393,36 @@ function renderRecentActivity() {
     if (user.role === 'employee') {
         // Show employee's allocations and redemptions
         const employeeAllocations = APP_STATE.allocations
-            .filter(a => a.employeeId === user.id)
+            .filter(a => a.employee_id === user.employee_id || a.employeeId === user.employee_id)
             .map(a => ({
                 type: 'earned',
                 title: `ได้รับ ${a.points} คะแนน`,
-                desc: `จาก ${a.managerName} - ${SMART_VALUES[a.smartValue].name}`,
+                desc: `จาก ${a.manager_name || a.managerName} - ${SMART_VALUES[a.smart_value || a.smartValue].name}`,
                 points: `+${a.points}`,
-                date: a.date
+                date: a.created_at || a.date
             }));
 
         const employeeRedemptions = APP_STATE.transactions
-            .filter(t => t.employeeId === user.id && t.type === 'redeem')
+            .filter(t => (t.employee_id === user.employee_id || t.employeeId === user.employee_id) && t.type === 'redeem')
             .map(t => ({
                 type: 'redeemed',
-                title: `แลก ${t.rewardName}`,
+                title: `แลก ${t.reward_name || t.rewardName}`,
                 desc: `ใช้ ${t.points} คะแนน`,
                 points: `-${t.points}`,
-                date: t.date
+                date: t.created_at || t.date
             }));
 
         activities = [...employeeAllocations, ...employeeRedemptions];
     } else {
         // Show manager's recent allocations
         activities = APP_STATE.allocations
-            .filter(a => a.managerId === user.id)
+            .filter(a => a.manager_id === user.employee_id || a.managerId === user.employee_id)
             .map(a => ({
                 type: 'allocated',
-                title: `ให้คะแนน ${a.employeeName}`,
-                desc: `${a.points} คะแนน - ${SMART_VALUES[a.smartValue].name}`,
+                title: `ให้คะแนน ${a.employee_name || a.employeeName}`,
+                desc: `${a.points} คะแนน - ${SMART_VALUES[a.smart_value || a.smartValue].name}`,
                 points: `${a.points}`,
-                date: a.date
+                date: a.created_at || a.date
             }));
     }
 
@@ -462,7 +474,7 @@ function renderRewards() {
     }
 
     const userPoints = APP_STATE.currentUser.role === 'employee'
-        ? APP_STATE.employees.find(e => e.id === APP_STATE.currentUser.id)?.points || 0
+        ? APP_STATE.employees.find(e => e.employee_id === APP_STATE.currentUser.employee_id)?.points || 0
         : 0;
 
     grid.innerHTML = filtered.map(reward => `
@@ -515,7 +527,7 @@ function showRedemptionModal(rewardId) {
     if (APP_STATE.currentUser.role !== 'employee') return;
 
     const reward = APP_STATE.rewards.find(r => r.id === rewardId);
-    const employee = APP_STATE.employees.find(e => e.id === APP_STATE.currentUser.id);
+    const employee = APP_STATE.employees.find(e => e.employee_id === APP_STATE.currentUser.employee_id);
 
     if (!reward || !employee) return;
 
@@ -573,7 +585,7 @@ function closeRedemptionModal() {
 
 function confirmRedemption(rewardId) {
     const reward = APP_STATE.rewards.find(r => r.id === rewardId);
-    const employee = APP_STATE.employees.find(e => e.id === APP_STATE.currentUser.id);
+    const employee = APP_STATE.employees.find(e => e.employee_id === APP_STATE.currentUser.employee_id);
 
     if (!reward || !employee || employee.points < reward.points) return;
 
@@ -584,7 +596,7 @@ function confirmRedemption(rewardId) {
     APP_STATE.transactions.push({
         id: 'txn' + Date.now(),
         type: 'redeem',
-        employeeId: employee.id,
+        employeeId: employee.employee_id,
         rewardId: reward.id,
         rewardName: reward.name,
         points: reward.points,
@@ -606,9 +618,14 @@ function renderAllocationForm() {
 
     // Populate employee dropdown
     employeeSelect.innerHTML = '<option value="">-- เลือกพนักงาน --</option>' +
-        APP_STATE.employees.map(emp =>
-            `<option value="${emp.id}">${emp.employee_id} - ${emp.name}</option>`
-        ).join('');
+        APP_STATE.employees.map(emp => {
+            const roleLabel = emp.role === 'admin'
+                ? 'Admin'
+                : emp.role === 'manager'
+                    ? 'Manager'
+                    : 'Employee';
+            return `<option value="${emp.employee_id}">${emp.employee_id} - ${emp.name} (${roleLabel})</option>`;
+        }).join('');
 
     // Setup form handlers
     const form = document.getElementById('allocationForm');
@@ -628,6 +645,12 @@ function renderAllocationForm() {
 
 function updateAllocationInfo() {
     const infoDiv = document.getElementById('allocationInfo');
+
+    if (APP_STATE.currentUser.role === 'admin') {
+        infoDiv.className = 'allocation-info success';
+        infoDiv.innerHTML = '✅ ผู้ดูแลระบบสามารถให้คะแนนได้ไม่จำกัด';
+        return;
+    }
 
     // Check manager's monthly allocation limit (5 points total per month)
     const thisMonthAllocations = APP_STATE.allocations.filter(a =>
@@ -653,6 +676,11 @@ function updateAllocationInfo() {
 async function handleAllocationSubmit(e) {
     e.preventDefault();
 
+    if (!canAllocatePoints(APP_STATE.currentUser)) {
+        showToast('เฉพาะ Manager หรือ Admin เท่านั้นที่สามารถให้คะแนนได้', 'error');
+        return;
+    }
+
     const employeeId = document.getElementById('employeeSelect').value;
     const points = 1; // Fixed at 1 point per allocation
     const reason = document.getElementById('reasonInput').value;
@@ -668,15 +696,17 @@ async function handleAllocationSubmit(e) {
         return;
     }
 
-    // Check manager's monthly limit (5 allocations total per month)
-    const thisMonthAllocations = APP_STATE.allocations.filter(a =>
-        a.manager_id === APP_STATE.currentUser.employee_id &&
-        isThisMonth(a.created_at)
-    );
+    if (APP_STATE.currentUser.role === 'manager') {
+        // Check manager's monthly limit (5 allocations total per month)
+        const thisMonthAllocations = APP_STATE.allocations.filter(a =>
+            a.manager_id === APP_STATE.currentUser.employee_id &&
+            isThisMonth(a.created_at)
+        );
 
-    if (thisMonthAllocations.length >= 5) {
-        showToast('คุณให้คะแนนครบ 5 ครั้งในเดือนนี้แล้ว (โควต้าหมด)', 'error');
-        return;
+        if (thisMonthAllocations.length >= 5) {
+            showToast('คุณให้คะแนนครบ 5 ครั้งในเดือนนี้แล้ว (โควต้าหมด)', 'error');
+            return;
+        }
     }
 
     // Find employee
@@ -738,10 +768,10 @@ function renderAllocationHistory() {
     let allocations = [...APP_STATE.allocations];
 
     if (filterMonth === 'current') {
-        allocations = allocations.filter(a => isThisMonth(a.date));
+        allocations = allocations.filter(a => isThisMonth(a.created_at || a.date));
     }
 
-    allocations.sort((a, b) => new Date(b.date) - new Date(a.date));
+    allocations.sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date));
 
     if (allocations.length === 0) {
         historyDiv.innerHTML = `
@@ -756,13 +786,13 @@ function renderAllocationHistory() {
     historyDiv.innerHTML = allocations.map(alloc => `
         <div class="allocation-item">
             <div class="allocation-header">
-                <span class="allocation-employee">${alloc.employeeName}</span>
+                <span class="allocation-employee">${alloc.employee_name || alloc.employeeName}</span>
                 <span class="allocation-points">+${alloc.points}</span>
             </div>
             <div class="allocation-reason">${alloc.reason}</div>
             <div class="allocation-meta">
-                <span class="smart-badge">${alloc.smartValue} - ${SMART_VALUES[alloc.smartValue].name}</span>
-                <span>${formatDate(alloc.date)}</span>
+                <span class="smart-badge">${alloc.smart_value || alloc.smartValue} - ${SMART_VALUES[alloc.smart_value || alloc.smartValue].name}</span>
+                <span>${formatDate(alloc.created_at || alloc.date)}</span>
             </div>
         </div>
     `).join('');
@@ -802,37 +832,37 @@ function renderHistory() {
     if (user.role === 'employee') {
         // Employee allocations
         const allocations = APP_STATE.allocations
-            .filter(a => a.employeeId === user.id)
+            .filter(a => a.employee_id === user.employee_id || a.employeeId === user.employee_id)
             .map(a => ({
                 type: 'earned',
-                title: `ได้รับคะแนนจาก ${a.managerName}`,
-                desc: `${a.reason} (${SMART_VALUES[a.smartValue].name})`,
+                title: `ได้รับคะแนนจาก ${a.manager_name || a.managerName}`,
+                desc: `${a.reason} (${SMART_VALUES[a.smart_value || a.smartValue].name})`,
                 points: a.points,
-                date: a.date
+                date: a.created_at || a.date
             }));
 
         // Employee redemptions
         const redemptions = APP_STATE.transactions
-            .filter(t => t.employeeId === user.id && t.type === 'redeem')
+            .filter(t => (t.employee_id === user.employee_id || t.employeeId === user.employee_id) && t.type === 'redeem')
             .map(t => ({
                 type: 'redeemed',
                 title: `แลกของรางวัล`,
-                desc: t.rewardName,
+                desc: t.reward_name || t.rewardName,
                 points: t.points,
-                date: t.date
+                date: t.created_at || t.date
             }));
 
         items = [...allocations, ...redemptions];
     } else {
         // Manager allocations
         items = APP_STATE.allocations
-            .filter(a => a.managerId === user.id)
+            .filter(a => a.manager_id === user.employee_id || a.managerId === user.employee_id)
             .map(a => ({
                 type: 'earned',
-                title: `ให้คะแนน ${a.employeeName}`,
-                desc: `${a.reason} (${SMART_VALUES[a.smartValue].name})`,
+                title: `ให้คะแนน ${a.employee_name || a.employeeName}`,
+                desc: `${a.reason} (${SMART_VALUES[a.smart_value || a.smartValue].name})`,
                 points: a.points,
-                date: a.date
+                date: a.created_at || a.date
             }));
     }
 

@@ -9,7 +9,7 @@ create table users (
   employee_id text unique not null,
   password text not null,
   name text not null,
-  role text not null check (role in ('manager', 'employee')),
+  role text not null check (role in ('manager', 'employee', 'admin')),
   avatar text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
