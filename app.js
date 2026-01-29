@@ -733,6 +733,7 @@ function updateAllocationModeView() {
     const excelGroup = document.getElementById('excelUploadGroup');
     const adminPointsGroup = document.getElementById('adminPointsGroup');
     const fixedPointsGroup = document.querySelector('.points-fixed')?.parentElement;
+    const employeeSelect = document.getElementById('employeeSelect');
 
     if (APP_STATE.currentUser.role !== 'admin') {
         if (singleGroup) singleGroup.style.display = '';
@@ -740,6 +741,7 @@ function updateAllocationModeView() {
         if (excelGroup) excelGroup.style.display = 'none';
         if (adminPointsGroup) adminPointsGroup.style.display = 'none';
         if (fixedPointsGroup) fixedPointsGroup.style.display = '';
+        if (employeeSelect) employeeSelect.required = true;
         return;
     }
 
@@ -748,6 +750,7 @@ function updateAllocationModeView() {
     if (excelGroup) excelGroup.style.display = mode === 'excel' ? '' : 'none';
     if (adminPointsGroup) adminPointsGroup.style.display = mode === 'excel' ? 'none' : '';
     if (fixedPointsGroup) fixedPointsGroup.style.display = 'none';
+    if (employeeSelect) employeeSelect.required = mode === 'single';
     updateGroupSelectionInfo();
     updateExcelImportInfo();
 }
