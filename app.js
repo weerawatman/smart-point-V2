@@ -614,7 +614,7 @@ function renderAllocationForm() {
     // Populate employee dropdown
     employeeSelect.innerHTML = '<option value="">-- เลือกพนักงาน --</option>' +
         APP_STATE.employees.map(emp =>
-            `<option value="${emp.id}">${emp.name} (${emp.points} คะแนน)</option>`
+            `<option value="${emp.id}">${emp.employee_id} - ${emp.name}</option>`
         ).join('');
 
     // Setup form handlers
