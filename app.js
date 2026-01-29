@@ -77,14 +77,26 @@ async function initializeDemoData() {
         APP_STATE.users = users;
         console.log('✅ Loaded users:', users.length, 'users');
 
-        // Fetch employees
+        // Fetch employees with user names
         const { data: employees, error: employeesError } = await supabase
             .from('employees')
-            .select('*');
+            .select(`
+                *,
+                users!employees_employee_id_fkey (
+                    name,
+                    avatar
+                )
+            `);
 
         if (employeesError) throw employeesError;
-        APP_STATE.employees = employees;
-        console.log('✅ Loaded employees:', employees);
+
+        // Flatten the data structure
+        APP_STATE.employees = employees.map(emp => ({
+            ...emp,
+            name: emp.users?.name,
+            avatar: emp.users?.avatar
+        }));
+        console.log('✅ Loaded employees:', APP_STATE.employees);
 
         // Fetch allocations
         const { data: allocations, error: allocationsError } = await supabase
