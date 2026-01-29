@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMART Rewards - ระบบแต้มรางวัล</title>
+    <meta name="description" content="ระบบจัดการแต้มรางวัลและแลกของรางวัลสำหรับพนักงาน">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal active">
+        <div class="modal-content login-modal">
+            <div class="login-header">
+                <h1>🎁 SMART Rewards</h1>
+                <p>ระบบจัดการแต้มรางวัล</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="employeeId">รหัสพนักงาน</label>
+                    <input type="text" id="employeeId" required placeholder="กรุณาใส่รหัสพนักงาน"
+                        autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">รหัสผ่าน</label>
+                    <input type="password" id="password" required placeholder="กรุณาใส่รหัสผ่าน"
+                        autocomplete="current-password">
+                </div>
+                <div id="loginError" class="login-error" style="display: none;"></div>
+                <button type="submit" class="btn-primary" style="width: 100%;">เข้าสู่ระบบ</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="appContainer" class="app-container hidden">
+        <!-- Navigation Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">🎁</span>
+                    <span class="logo-text">SMART Rewards</span>
+                </div>
+                <nav class="nav-menu">
+                    <button class="nav-btn active" data-view="dashboard">
+                        <span class="icon">📊</span>
+                        <span>Dashboard</span>
+                    </button>
+                    <button class="nav-btn" data-view="rewards">
+                        <span class="icon">🎁</span>
+                        <span>Rewards</span>
+                    </button>
+                    <button class="nav-btn manager-only" data-view="allocate" style="display: none;">
+                        <span class="icon">⭐</span>
+                        <span>ให้คะแนน</span>
+                    </button>
+                    <button class="nav-btn" data-view="history">
+                        <span class="icon">📜</span>
+                        <span>ประวัติ</span>
+                    </button>
+                </nav>
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">👤</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">User</div>
+                        <div class="user-role" id="userRole">Employee</div>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">ออกจากระบบ</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard View -->
+            <section id="dashboardView" class="view active">
+                <div class="dashboard-grid">
+                    <!-- Points Card -->
+                    <div class="card points-card">
+                        <div class="card-header">
+                            <h2>คะแนนของคุณ</h2>
+                            <span class="icon">💎</span>
+                        </div>
+                        <div class="points-display">
+                            <div class="points-value" id="currentPoints">0</div>
+                            <div class="points-label">คะแนน</div>
+                        </div>
+                        <div class="tier-badge" id="tierBadge">
+                            <span class="tier-icon">🌟</span>
+                            <span class="tier-name">Bronze Member</span>
+                        </div>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="card stats-card">
+                        <div class="stat-item">
+                            <div class="stat-icon">📈</div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="totalEarned">0</div>
+                                <div class="stat-label">คะแนนที่ได้รับทั้งหมด</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card stats-card">
+                        <div class="stat-item">
+                            <div class="stat-icon">🎯</div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="totalRedeemed">0</div>
+                                <div class="stat-label">ของรางวัลที่แลก</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="card activity-card">
+                        <div class="card-header">
+                            <h3>กิจกรรมล่าสุด</h3>
+                        </div>
+                        <div class="activity-list" id="recentActivity">
+                            <div class="empty-state">
+                                <span class="empty-icon">📭</span>
+                                <p>ยังไม่มีกิจกรรม</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Rewards Catalog View -->
+            <section id="rewardsView" class="view">
+                <div class="view-header">
+                    <h2>แคตตาล็อกรางวัล</h2>
+                    <div class="filter-controls">
+                        <select id="categoryFilter" class="filter-select">
+                            <option value="all">ทุกหมวดหมู่</option>
+                            <option value="electronics">อิเล็กทรอนิกส์</option>
+                            <option value="giftcard">บัตรของขวัญ</option>
+                            <option value="experience">ประสบการณ์</option>
+                            <option value="lifestyle">ไลฟ์สไตล์</option>
+                        </select>
+                        <select id="sortFilter" class="filter-select">
+                            <option value="default">เรียงตามค่าเริ่มต้น</option>
+                            <option value="low">คะแนนน้อย - มาก</option>
+                            <option value="high">คะแนนมาก - น้อย</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="rewards-grid" id="rewardsGrid">
+                    <!-- Rewards will be dynamically inserted here -->
+                </div>
+            </section>
+
+            <!-- Allocate Points View (Manager Only) -->
+            <section id="allocateView" class="view manager-only" style="display: none;">
+                <div class="view-header">
+                    <h2>ให้คะแนนพนักงาน</h2>
+                </div>
+
+                <div class="allocate-container">
+                    <div class="card allocation-form-card">
+                        <h3>ฟอร์มให้คะแนน</h3>
+                        <form id="allocationForm" class="allocation-form">
+                            <div class="form-group">
+                                <label for="employeeSelect">เลือกพนักงาน *</label>
+                                <select id="employeeSelect" required>
+                                    <option value="">-- เลือกพนักงาน --</option>
+                                </select>
+                                <div class="allocation-info" id="allocationInfo"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>จำนวนคะแนน</label>
+                                <div class="points-fixed">
+                                    <span class="points-badge">1 คะแนน</span>
+                                    <p class="points-note">ให้คะแนนทีละ 1 คะแนนต่อครั้ง</p>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="reasonInput">เหตุผล (ขั้นต่ำ 10 ตัวอักษร) *</label>
+                                <textarea id="reasonInput" rows="4" minlength="10" required
+                                    placeholder="กรุณาระบุเหตุผลในการให้คะแนน..."></textarea>
+                                <div class="char-count"><span id="charCount">0</span>/10 ตัวอักษร</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>SMART Culture Value *</label>
+                                <div class="smart-values">
+                                    <label class="smart-option">
+                                        <input type="radio" name="smartValue" value="S" required>
+                                        <div class="smart-card">
+                                            <div class="smart-letter">S</div>
+                                            <div class="smart-title">Spirit of Commitment</div>
+                                            <div class="smart-desc">
+                                                การปฏิบัติหน้าที่ด้วยความซื่อสัตย์และส่งมอบงานตามข้อตกลง</div>
+                                        </div>
+                                    </label>
+                                    <label class="smart-option">
+                                        <input type="radio" name="smartValue" value="M" required>
+                                        <div class="smart-card">
+                                            <div class="smart-letter">M</div>
+                                            <div class="smart-title">Mastery of Learning</div>
+                                            <div class="smart-desc">การตั้งใจเรียนรู้สิ่งใหม่ๆ รวมถึงเทคโนโลยี</div>
+                                        </div>
+                                    </label>
+                                    <label class="smart-option">
+                                        <input type="radio" name="smartValue" value="A" required>
+                                        <div class="smart-card">
+                                            <div class="smart-letter">A</div>
+                                            <div class="smart-title">Agility</div>
+                                            <div class="smart-desc">การเปิดรับสิ่งใหม่ วางแผนปรับตัว เตรียมความพร้อม
+                                            </div>
+                                        </div>
+                                    </label>
+                                    <label class="smart-option">
+                                        <input type="radio" name="smartValue" value="R" required>
+                                        <div class="smart-card">
+                                            <div class="smart-letter">R</div>
+                                            <div class="smart-title">Respect Others</div>
+                                            <div class="smart-desc">การยอมรับความแตกต่าง และเปิดใจรับฟังความคิดเห็น
+                                            </div>
+                                        </div>
+                                    </label>
+                                    <label class="smart-option">
+                                        <input type="radio" name="smartValue" value="T" required>
+                                        <div class="smart-card">
+                                            <div class="smart-letter">T</div>
+                                            <div class="smart-title">Think Customers</div>
+                                            <div class="smart-desc">การทำความเข้าใจความคาดหวังของลูกค้า</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-primary">ให้คะแนน</button>
+                        </form>
+                    </div>
+
+                    <div class="card allocation-history-card">
+                        <h3>ประวัติการให้คะแนน</h3>
+                        <div class="allocation-filters">
+                            <input type="text" id="searchAllocation" placeholder="ค้นหา...">
+                            <select id="filterMonth" class="filter-select">
+                                <option value="current">เดือนนี้</option>
+                                <option value="all">ทั้งหมด</option>
+                            </select>
+                        </div>
+                        <div class="allocation-list" id="allocationHistory">
+                            <div class="empty-state">
+                                <span class="empty-icon">📋</span>
+                                <p>ยังไม่มีประวัติการให้คะแนน</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- History View -->
+            <section id="historyView" class="view">
+                <div class="view-header">
+                    <h2>ประวัติการทำรายการ</h2>
+                    <div class="filter-controls">
+                        <select id="historyFilter" class="filter-select">
+                            <option value="all">ทั้งหมด</option>
+                            <option value="earned">ได้รับคะแนน</option>
+                            <option value="redeemed">แลกของรางวัล</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="history-list" id="historyList">
+                    <div class="empty-state">
+                        <span class="empty-icon">📜</span>
+                        <p>ยังไม่มีประวัติ</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Redemption Modal -->
+    <div id="redemptionModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeRedemptionModal()">&times;</button>
+            <div class="modal-header">
+                <h2>ยืนยันการแลกของรางวัล</h2>
+            </div>
+            <div class="modal-body" id="redemptionModalBody">
+                <!-- Content will be inserted dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

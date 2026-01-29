@@ -1,0 +1,827 @@
+// ===========================
+// Application State
+// ===========================
+const APP_STATE = {
+    currentUser: null,
+    currentView: 'dashboard',
+    employees: [],
+    rewards: [],
+    allocations: [],
+    transactions: []
+};
+
+// SMART Culture Values
+const SMART_VALUES = {
+    S: {
+        name: 'Spirit of Commitment, Integrity & Ethics',
+        desc: 'การปฏิบัติหน้าที่ด้วยความซื่อสัตย์และส่งมอบงานตามข้อตกลงหรือสัญญาที่ได้ตกลงกันไว้ ด้วยความโปร่งใส'
+    },
+    M: {
+        name: 'Mastery of Learning & Applying Technology',
+        desc: 'การตั้งใจเรียนรู้สิ่งใหม่ๆ รวมถึงเทคโนโลยี และนำมาใช้ปรับปรุง พัฒนา การทำงาน บริการ หรือผลิตภัณฑ์ ให้ดีขึ้นอย่างต่อเนื่อง'
+    },
+    A: {
+        name: 'Agility',
+        desc: 'การเปิดรับสิ่งใหม่ วางแผนปรับตัว เตรียมความพร้อมสำหรับการเปลี่ยนแปลงอย่างรวดเร็ว'
+    },
+    R: {
+        name: 'Respect Others & Value Diversity',
+        desc: 'การยอมรับความแตกต่าง และเปิดใจรับฟังความคิดเห็นของทุกคนในทีมเพื่อหาแนวทางที่ดีที่สุดในการแก้ไขปัญหา'
+    },
+    T: {
+        name: 'Think Customers & Think Value',
+        desc: 'การทำความเข้าใจความคาดหวังของลูกค้า (ทั้งภายในและภายนอก) อย่างต่อเนื่อง และใส่ใจในคุณค่าของงานและบริการที่ส่งมอบให้ลูกค้า'
+    }
+};
+
+// ===========================
+// Initialize Demo Data
+// ===========================
+function initializeDemoData() {
+    // Demo Users (Employee ID: password is always 123456)
+    APP_STATE.users = [
+        { id: 'MGR001', password: '123456', name: 'ผู้จัดการ สมศักดิ์', role: 'manager', avatar: '👔' },
+        { id: 'EMP001', password: '123456', name: 'สมชาย ใจดี', role: 'employee', avatar: '👤' },
+        { id: 'EMP002', password: '123456', name: 'สมหญิง รักงาน', role: 'employee', avatar: '👤' },
+        { id: 'EMP003', password: '123456', name: 'วิชัย มานะ', role: 'employee', avatar: '👤' },
+        { id: 'EMP004', password: '123456', name: 'ปรียา สุขใจ', role: 'employee', avatar: '👤' },
+        { id: 'EMP005', password: '123456', name: 'ธนา เก่งกาจ', role: 'employee', avatar: '👤' }
+    ];
+
+    // Demo Employees (for points tracking)
+    APP_STATE.employees = [
+        { id: 'EMP001', name: 'สมชาย ใจดี', points: 150, totalEarned: 250, tier: 'Silver' },
+        { id: 'EMP002', name: 'สมหญิง รักงาน', points: 80, totalEarned: 120, tier: 'Bronze' },
+        { id: 'EMP003', name: 'วิชัย มานะ', points: 220, totalEarned: 350, tier: 'Gold' },
+        { id: 'EMP004', name: 'ปรียา สุขใจ', points: 45, totalEarned: 90, tier: 'Bronze' },
+        { id: 'EMP005', name: 'ธนา เก่งกาจ', points: 180, totalEarned: 280, tier: 'Silver' }
+    ];
+
+    // Demo Rewards
+    APP_STATE.rewards = [
+        {
+            id: 'r1',
+            name: 'หูฟังบลูทูธ Premium',
+            desc: 'หูฟังไร้สายคุณภาพสูง เสียงใส ตัดเสียงรบกวน',
+            points: 150,
+            category: 'electronics',
+            image: '🎧'
+        },
+        {
+            id: 'r2',
+            name: 'บัตรกำนัล Starbucks 500 บาท',
+            desc: 'บัตรกำนัลสตาร์บัคส์ มูลค่า 500 บาท',
+            points: 50,
+            category: 'giftcard',
+            image: '☕'
+        },
+        {
+            id: 'r3',
+            name: 'Smart Watch',
+            desc: 'นาฬิกาอัจฉริยะ ติดตามสุขภาพ ออกกำลังกาย',
+            points: 300,
+            category: 'electronics',
+            image: '⌚'
+        },
+        {
+            id: 'r4',
+            name: 'คอร์สออนไลน์ Udemy',
+            desc: 'เลือกคอร์สเรียนออนไลน์ได้ 1 คอร์ส',
+            points: 80,
+            category: 'experience',
+            image: '📚'
+        },
+        {
+            id: 'r5',
+            name: 'กระเป๋าเป้แบรนด์เนม',
+            desc: 'กระเป๋าเป้สุดเท่ ใส่โน้ตบุ๊คได้',
+            points: 200,
+            category: 'lifestyle',
+            image: '🎒'
+        },
+        {
+            id: 'r6',
+            name: 'บัตรชมภาพยนตร์ 2 ที่นั่ง',
+            desc: 'บัตรชมหนังฟรี 2 ที่นั่ง ทุกโรงในเครือ',
+            points: 60,
+            category: 'experience',
+            image: '🎬'
+        },
+        {
+            id: 'r7',
+            name: 'Power Bank 20000mAh',
+            desc: 'แบตสำรอง ชาร์จเร็ว รองรับทุกอุปกรณ์',
+            points: 100,
+            category: 'electronics',
+            image: '🔋'
+        },
+        {
+            id: 'r8',
+            name: 'บัตรกำนัล Central 1000 บาท',
+            desc: 'บัตรกำนัลห้างเซ็นทรัล มูลค่า 1000 บาท',
+            points: 100,
+            category: 'giftcard',
+            image: '🎁'
+        }
+    ];
+
+    // Load from localStorage if available
+    const savedData = localStorage.getItem('rewardsAppData');
+    if (savedData) {
+        const data = JSON.parse(savedData);
+        APP_STATE.employees = data.employees || APP_STATE.employees;
+        APP_STATE.allocations = data.allocations || [];
+        APP_STATE.transactions = data.transactions || [];
+    }
+}
+
+// ===========================
+// Authentication
+// ===========================
+function handleLogin(e) {
+    e.preventDefault();
+
+    const employeeId = document.getElementById('employeeId').value.trim();
+    const password = document.getElementById('password').value;
+    const errorDiv = document.getElementById('loginError');
+
+    // Find user
+    const user = APP_STATE.users.find(u => u.id === employeeId && u.password === password);
+
+    if (!user) {
+        errorDiv.textContent = '❌ รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    APP_STATE.currentUser = user;
+
+    document.getElementById('loginModal').classList.remove('active');
+    document.getElementById('appContainer').classList.remove('hidden');
+
+    updateUserInfo();
+    showManagerFeatures();
+    switchView('dashboard');
+}
+
+function logout() {
+    APP_STATE.currentUser = null;
+    document.getElementById('loginModal').classList.add('active');
+    document.getElementById('appContainer').classList.add('hidden');
+}
+
+function updateUserInfo() {
+    const user = APP_STATE.currentUser;
+    document.getElementById('userName').textContent = user.name;
+    document.getElementById('userRole').textContent = user.role === 'manager' ? 'Manager' : 'Employee';
+    document.getElementById('userAvatar').textContent = user.avatar;
+}
+
+function showManagerFeatures() {
+    const managerElements = document.querySelectorAll('.manager-only');
+    const isManager = APP_STATE.currentUser.role === 'manager';
+
+    managerElements.forEach(el => {
+        el.style.display = isManager ? '' : 'none';
+    });
+}
+
+// ===========================
+// Navigation
+// ===========================
+function switchView(viewName) {
+    APP_STATE.currentView = viewName;
+
+    // Update nav buttons
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.view === viewName) {
+            btn.classList.add('active');
+        }
+    });
+
+    // Update views
+    document.querySelectorAll('.view').forEach(view => {
+        view.classList.remove('active');
+    });
+    document.getElementById(viewName + 'View').classList.add('active');
+
+    // Load view data
+    if (viewName === 'dashboard') {
+        updateDashboard();
+    } else if (viewName === 'rewards') {
+        renderRewards();
+    } else if (viewName === 'allocate') {
+        renderAllocationForm();
+    } else if (viewName === 'history') {
+        renderHistory();
+    }
+}
+
+// Setup navigation and login
+document.addEventListener('DOMContentLoaded', () => {
+    initializeDemoData();
+
+    // Setup login form
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+    }
+
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            switchView(btn.dataset.view);
+        });
+    });
+});
+
+// ===========================
+// Dashboard
+// ===========================
+function updateDashboard() {
+    const user = APP_STATE.currentUser;
+
+    if (user.role === 'employee') {
+        const employee = APP_STATE.employees.find(e => e.id === user.id);
+        if (employee) {
+            document.getElementById('currentPoints').textContent = employee.points;
+            document.getElementById('totalEarned').textContent = employee.totalEarned;
+
+            // Update tier
+            const tierBadge = document.getElementById('tierBadge');
+            const tierInfo = getTierInfo(employee.totalEarned);
+            tierBadge.innerHTML = `
+                <span class="tier-icon">${tierInfo.icon}</span>
+                <span class="tier-name">${tierInfo.name}</span>
+            `;
+
+            // Count redemptions
+            const redemptions = APP_STATE.transactions.filter(t =>
+                t.employeeId === user.id && t.type === 'redeem'
+            );
+            document.getElementById('totalRedeemed').textContent = redemptions.length;
+        }
+    } else {
+        // Manager view - show summary
+        const totalAllocations = APP_STATE.allocations.length;
+        const thisMonth = APP_STATE.allocations.filter(a => isThisMonth(a.date)).length;
+
+        document.getElementById('currentPoints').textContent = totalAllocations;
+        document.getElementById('totalEarned').textContent = thisMonth;
+        document.getElementById('totalRedeemed').textContent = APP_STATE.employees.length;
+
+        const tierBadge = document.getElementById('tierBadge');
+        tierBadge.innerHTML = `
+            <span class="tier-icon">👔</span>
+            <span class="tier-name">Manager Account</span>
+        `;
+    }
+
+    renderRecentActivity();
+}
+
+function getTierInfo(totalPoints) {
+    if (totalPoints >= 300) {
+        return { name: 'Gold Member', icon: '👑' };
+    } else if (totalPoints >= 150) {
+        return { name: 'Silver Member', icon: '⭐' };
+    } else {
+        return { name: 'Bronze Member', icon: '🌟' };
+    }
+}
+
+function renderRecentActivity() {
+    const activityList = document.getElementById('recentActivity');
+    const user = APP_STATE.currentUser;
+
+    let activities = [];
+
+    if (user.role === 'employee') {
+        // Show employee's allocations and redemptions
+        const employeeAllocations = APP_STATE.allocations
+            .filter(a => a.employeeId === user.id)
+            .map(a => ({
+                type: 'earned',
+                title: `ได้รับ ${a.points} คะแนน`,
+                desc: `จาก ${a.managerName} - ${SMART_VALUES[a.smartValue].name}`,
+                points: `+${a.points}`,
+                date: a.date
+            }));
+
+        const employeeRedemptions = APP_STATE.transactions
+            .filter(t => t.employeeId === user.id && t.type === 'redeem')
+            .map(t => ({
+                type: 'redeemed',
+                title: `แลก ${t.rewardName}`,
+                desc: `ใช้ ${t.points} คะแนน`,
+                points: `-${t.points}`,
+                date: t.date
+            }));
+
+        activities = [...employeeAllocations, ...employeeRedemptions];
+    } else {
+        // Show manager's recent allocations
+        activities = APP_STATE.allocations
+            .filter(a => a.managerId === user.id)
+            .map(a => ({
+                type: 'allocated',
+                title: `ให้คะแนน ${a.employeeName}`,
+                desc: `${a.points} คะแนน - ${SMART_VALUES[a.smartValue].name}`,
+                points: `${a.points}`,
+                date: a.date
+            }));
+    }
+
+    activities.sort((a, b) => new Date(b.date) - new Date(a.date));
+    activities = activities.slice(0, 5);
+
+    if (activities.length === 0) {
+        activityList.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">📭</span>
+                <p>ยังไม่มีกิจกรรม</p>
+            </div>
+        `;
+        return;
+    }
+
+    activityList.innerHTML = activities.map(activity => `
+        <div class="activity-item">
+            <div class="activity-info">
+                <div class="activity-title">${activity.title}</div>
+                <div class="activity-desc">${activity.desc}</div>
+                <div class="activity-date">${formatDate(activity.date)}</div>
+            </div>
+            <div class="activity-points ${activity.type === 'redeemed' ? 'negative' : ''}">${activity.points}</div>
+        </div>
+    `).join('');
+}
+
+// ===========================
+// Rewards Catalog
+// ===========================
+function renderRewards() {
+    const grid = document.getElementById('rewardsGrid');
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    const sortFilter = document.getElementById('sortFilter').value;
+
+    let filtered = [...APP_STATE.rewards];
+
+    // Filter by category
+    if (categoryFilter !== 'all') {
+        filtered = filtered.filter(r => r.category === categoryFilter);
+    }
+
+    // Sort
+    if (sortFilter === 'low') {
+        filtered.sort((a, b) => a.points - b.points);
+    } else if (sortFilter === 'high') {
+        filtered.sort((a, b) => b.points - a.points);
+    }
+
+    const userPoints = APP_STATE.currentUser.role === 'employee'
+        ? APP_STATE.employees.find(e => e.id === APP_STATE.currentUser.id)?.points || 0
+        : 0;
+
+    grid.innerHTML = filtered.map(reward => `
+        <div class="reward-card" onclick="showRedemptionModal('${reward.id}')">
+            <div class="reward-image">${reward.image}</div>
+            <div class="reward-content">
+                <span class="reward-category">${getCategoryName(reward.category)}</span>
+                <h3 class="reward-name">${reward.name}</h3>
+                <p class="reward-desc">${reward.desc}</p>
+                <div class="reward-footer">
+                    <span class="reward-points">${reward.points} คะแนน</span>
+                    ${APP_STATE.currentUser.role === 'employee' ? `
+                        <button class="btn-redeem" ${userPoints < reward.points ? 'disabled' : ''}>
+                            ${userPoints < reward.points ? 'คะแนนไม่พอ' : 'แลก'}
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function getCategoryName(category) {
+    const names = {
+        electronics: 'อิเล็กทรอนิกส์',
+        giftcard: 'บัตรของขวัญ',
+        experience: 'ประสบการณ์',
+        lifestyle: 'ไลฟ์สไตล์'
+    };
+    return names[category] || category;
+}
+
+// Setup filters
+document.addEventListener('DOMContentLoaded', () => {
+    const categoryFilter = document.getElementById('categoryFilter');
+    const sortFilter = document.getElementById('sortFilter');
+
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', renderRewards);
+    }
+    if (sortFilter) {
+        sortFilter.addEventListener('change', renderRewards);
+    }
+});
+
+// ===========================
+// Redemption
+// ===========================
+function showRedemptionModal(rewardId) {
+    if (APP_STATE.currentUser.role !== 'employee') return;
+
+    const reward = APP_STATE.rewards.find(r => r.id === rewardId);
+    const employee = APP_STATE.employees.find(e => e.id === APP_STATE.currentUser.id);
+
+    if (!reward || !employee) return;
+
+    const modal = document.getElementById('redemptionModal');
+    const body = document.getElementById('redemptionModalBody');
+
+    const canRedeem = employee.points >= reward.points;
+
+    body.innerHTML = `
+        <div style="text-align: center;">
+            <div style="font-size: 5rem; margin-bottom: 1rem;">${reward.image}</div>
+            <h3 style="margin-bottom: 0.5rem;">${reward.name}</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">${reward.desc}</p>
+            
+            <div style="background: var(--bg-tertiary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>คะแนนของคุณ:</span>
+                    <strong>${employee.points}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>ราคา:</span>
+                    <strong style="color: var(--color-primary);">${reward.points}</strong>
+                </div>
+                <hr style="border: none; border-top: 1px solid rgba(139, 92, 246, 0.2); margin: 0.5rem 0;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>คงเหลือหลังแลก:</span>
+                    <strong style="color: ${canRedeem ? 'var(--color-success)' : 'var(--color-error)'};">
+                        ${canRedeem ? employee.points - reward.points : 'ไม่พอ'}
+                    </strong>
+                </div>
+            </div>
+            
+            ${canRedeem ? `
+                <button class="btn-primary" onclick="confirmRedemption('${rewardId}')" style="width: 100%; margin-bottom: 0.5rem;">
+                    ยืนยันการแลก
+                </button>
+            ` : `
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--color-error); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                    คะแนนของคุณไม่เพียงพอ ต้องการอีก ${reward.points - employee.points} คะแนน
+                </div>
+            `}
+            
+            <button class="btn-primary" onclick="closeRedemptionModal()" style="width: 100%; background: var(--bg-tertiary); color: var(--text-primary);">
+                ยกเลิก
+            </button>
+        </div>
+    `;
+
+    modal.classList.add('active');
+}
+
+function closeRedemptionModal() {
+    document.getElementById('redemptionModal').classList.remove('active');
+}
+
+function confirmRedemption(rewardId) {
+    const reward = APP_STATE.rewards.find(r => r.id === rewardId);
+    const employee = APP_STATE.employees.find(e => e.id === APP_STATE.currentUser.id);
+
+    if (!reward || !employee || employee.points < reward.points) return;
+
+    // Deduct points
+    employee.points -= reward.points;
+
+    // Add transaction
+    APP_STATE.transactions.push({
+        id: 'txn' + Date.now(),
+        type: 'redeem',
+        employeeId: employee.id,
+        rewardId: reward.id,
+        rewardName: reward.name,
+        points: reward.points,
+        date: new Date().toISOString()
+    });
+
+    saveData();
+    closeRedemptionModal();
+    showToast('แลกของรางวัลสำเร็จ! 🎉', 'success');
+    updateDashboard();
+    renderRewards();
+}
+
+// ===========================
+// Manager Allocation
+// ===========================
+function renderAllocationForm() {
+    const employeeSelect = document.getElementById('employeeSelect');
+
+    // Populate employee dropdown
+    employeeSelect.innerHTML = '<option value="">-- เลือกพนักงาน --</option>' +
+        APP_STATE.employees.map(emp =>
+            `<option value="${emp.id}">${emp.name} (${emp.points} คะแนน)</option>`
+        ).join('');
+
+    // Setup form handlers
+    const form = document.getElementById('allocationForm');
+    const reasonInput = document.getElementById('reasonInput');
+    const charCount = document.getElementById('charCount');
+
+    reasonInput.addEventListener('input', () => {
+        charCount.textContent = reasonInput.value.length;
+    });
+
+    employeeSelect.addEventListener('change', updateAllocationInfo);
+
+    form.onsubmit = handleAllocationSubmit;
+
+    renderAllocationHistory();
+}
+
+function updateAllocationInfo() {
+    const infoDiv = document.getElementById('allocationInfo');
+
+    // Check manager's monthly allocation limit (5 points total per month)
+    const thisMonthAllocations = APP_STATE.allocations.filter(a =>
+        a.managerId === APP_STATE.currentUser.id &&
+        isThisMonth(a.date)
+    );
+
+    const totalThisMonth = thisMonthAllocations.length; // Each allocation is 1 point
+    const remaining = 5 - totalThisMonth;
+
+    if (remaining <= 0) {
+        infoDiv.className = 'allocation-info error';
+        infoDiv.innerHTML = `❌ คุณให้คะแนนครบ 5 ครั้งในเดือนนี้แล้ว (โควต้าหมด)`;
+    } else if (remaining <= 2) {
+        infoDiv.className = 'allocation-info warning';
+        infoDiv.innerHTML = `⚠️ คุณเหลือโควต้าอีก ${remaining} ครั้งสำหรับเดือนนี้`;
+    } else {
+        infoDiv.className = 'allocation-info success';
+        infoDiv.innerHTML = `✅ คุณสามารถให้คะแนนได้อีก ${remaining} ครั้งในเดือนนี้`;
+    }
+}
+
+function handleAllocationSubmit(e) {
+    e.preventDefault();
+
+    const employeeId = document.getElementById('employeeSelect').value;
+    const points = 1; // Fixed at 1 point per allocation
+    const reason = document.getElementById('reasonInput').value;
+    const smartValue = document.querySelector('input[name="smartValue"]:checked')?.value;
+
+    if (!employeeId || !reason || !smartValue) {
+        showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+        return;
+    }
+
+    if (reason.length < 10) {
+        showToast('เหตุผลต้องมีอย่างน้อย 10 ตัวอักษร', 'error');
+        return;
+    }
+
+    // Check manager's monthly limit (5 allocations total per month)
+    const thisMonthAllocations = APP_STATE.allocations.filter(a =>
+        a.managerId === APP_STATE.currentUser.id &&
+        isThisMonth(a.date)
+    );
+
+    if (thisMonthAllocations.length >= 5) {
+        showToast('คุณให้คะแนนครบ 5 ครั้งในเดือนนี้แล้ว (โควต้าหมด)', 'error');
+        return;
+    }
+
+    // Find employee
+    const employee = APP_STATE.employees.find(e => e.id === employeeId);
+    if (!employee) return;
+
+    // Add allocation
+    const allocation = {
+        id: 'alloc' + Date.now(),
+        managerId: APP_STATE.currentUser.id,
+        managerName: APP_STATE.currentUser.name,
+        employeeId: employeeId,
+        employeeName: employee.name,
+        points: points,
+        reason: reason,
+        smartValue: smartValue,
+        date: new Date().toISOString()
+    };
+
+    APP_STATE.allocations.push(allocation);
+
+    // Update employee points
+    employee.points += points;
+    employee.totalEarned += points;
+
+    saveData();
+
+    // Reset form
+    e.target.reset();
+    document.getElementById('charCount').textContent = '0';
+    updateAllocationInfo();
+
+    showToast(`ให้คะแนนสำเร็จ! ${employee.name} ได้รับ ${points} คะแนน 🎉`, 'success');
+    renderAllocationHistory();
+}
+
+function renderAllocationHistory() {
+    const historyDiv = document.getElementById('allocationHistory');
+    const filterMonth = document.getElementById('filterMonth').value;
+
+    let allocations = [...APP_STATE.allocations];
+
+    if (filterMonth === 'current') {
+        allocations = allocations.filter(a => isThisMonth(a.date));
+    }
+
+    allocations.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (allocations.length === 0) {
+        historyDiv.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">📋</span>
+                <p>ยังไม่มีประวัติการให้คะแนน</p>
+            </div>
+        `;
+        return;
+    }
+
+    historyDiv.innerHTML = allocations.map(alloc => `
+        <div class="allocation-item">
+            <div class="allocation-header">
+                <span class="allocation-employee">${alloc.employeeName}</span>
+                <span class="allocation-points">+${alloc.points}</span>
+            </div>
+            <div class="allocation-reason">${alloc.reason}</div>
+            <div class="allocation-meta">
+                <span class="smart-badge">${alloc.smartValue} - ${SMART_VALUES[alloc.smartValue].name}</span>
+                <span>${formatDate(alloc.date)}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Setup allocation filters
+document.addEventListener('DOMContentLoaded', () => {
+    const filterMonth = document.getElementById('filterMonth');
+    const searchAllocation = document.getElementById('searchAllocation');
+
+    if (filterMonth) {
+        filterMonth.addEventListener('change', renderAllocationHistory);
+    }
+
+    if (searchAllocation) {
+        searchAllocation.addEventListener('input', (e) => {
+            const search = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('.allocation-item');
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(search) ? '' : 'none';
+            });
+        });
+    }
+});
+
+// ===========================
+// History
+// ===========================
+function renderHistory() {
+    const historyList = document.getElementById('historyList');
+    const filter = document.getElementById('historyFilter').value;
+    const user = APP_STATE.currentUser;
+
+    let items = [];
+
+    if (user.role === 'employee') {
+        // Employee allocations
+        const allocations = APP_STATE.allocations
+            .filter(a => a.employeeId === user.id)
+            .map(a => ({
+                type: 'earned',
+                title: `ได้รับคะแนนจาก ${a.managerName}`,
+                desc: `${a.reason} (${SMART_VALUES[a.smartValue].name})`,
+                points: a.points,
+                date: a.date
+            }));
+
+        // Employee redemptions
+        const redemptions = APP_STATE.transactions
+            .filter(t => t.employeeId === user.id && t.type === 'redeem')
+            .map(t => ({
+                type: 'redeemed',
+                title: `แลกของรางวัล`,
+                desc: t.rewardName,
+                points: t.points,
+                date: t.date
+            }));
+
+        items = [...allocations, ...redemptions];
+    } else {
+        // Manager allocations
+        items = APP_STATE.allocations
+            .filter(a => a.managerId === user.id)
+            .map(a => ({
+                type: 'earned',
+                title: `ให้คะแนน ${a.employeeName}`,
+                desc: `${a.reason} (${SMART_VALUES[a.smartValue].name})`,
+                points: a.points,
+                date: a.date
+            }));
+    }
+
+    // Apply filter
+    if (filter === 'earned') {
+        items = items.filter(i => i.type === 'earned');
+    } else if (filter === 'redeemed') {
+        items = items.filter(i => i.type === 'redeemed');
+    }
+
+    items.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (items.length === 0) {
+        historyList.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">📜</span>
+                <p>ยังไม่มีประวัติ</p>
+            </div>
+        `;
+        return;
+    }
+
+    historyList.innerHTML = items.map(item => `
+        <div class="history-item ${item.type}">
+            <div class="history-info">
+                <div class="history-title">${item.title}</div>
+                <div class="history-desc">${item.desc}</div>
+                <div class="history-date">${formatDate(item.date)}</div>
+            </div>
+            <div class="history-points ${item.type === 'earned' ? 'earned' : 'spent'}">
+                ${item.type === 'earned' ? '+' : '-'}${item.points}
+            </div>
+        </div>
+    `).join('');
+}
+
+// Setup history filter
+document.addEventListener('DOMContentLoaded', () => {
+    const historyFilter = document.getElementById('historyFilter');
+    if (historyFilter) {
+        historyFilter.addEventListener('change', renderHistory);
+    }
+});
+
+// ===========================
+// Utility Functions
+// ===========================
+function isThisMonth(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    return date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear();
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'เมื่อสักครู่';
+    if (minutes < 60) return `${minutes} นาทีที่แล้ว`;
+    if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`;
+    if (days < 7) return `${days} วันที่แล้ว`;
+
+    return date.toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `toast ${type} show`;
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+function saveData() {
+    const data = {
+        employees: APP_STATE.employees,
+        allocations: APP_STATE.allocations,
+        transactions: APP_STATE.transactions
+    };
+    localStorage.setItem('rewardsAppData', JSON.stringify(data));
+}
