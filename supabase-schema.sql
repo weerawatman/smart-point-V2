@@ -114,8 +114,9 @@ insert into users (employee_id, password, name, role, avatar) values
   ('EMP004', '123456', 'ปรียา สุขใจ', 'employee', '👤'),
   ('EMP005', '123456', 'ธนา เก่งกาจ', 'employee', '👤');
 
--- Insert demo employees
+-- Insert demo employees (including manager - everyone can receive points)
 insert into employees (employee_id, points, total_earned, tier) values
+  ('MGR001', 0, 0, 'Bronze'),
   ('EMP001', 150, 250, 'Silver'),
   ('EMP002', 80, 120, 'Bronze'),
   ('EMP003', 220, 350, 'Gold'),
