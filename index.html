@@ -160,6 +160,51 @@
                 <div class="rewards-grid" id="rewardsGrid">
                     <!-- Rewards will be dynamically inserted here -->
                 </div>
+
+                <div class="admin-rewards admin-only" style="display: none;">
+                    <div class="card admin-rewards-card">
+                        <div class="admin-rewards-header">
+                            <h3>จัดการของรางวัล</h3>
+                            <div class="admin-rewards-actions">
+                                <button class="btn-outline" id="cancelRewardEdit" style="display: none;">ยกเลิกแก้ไข</button>
+                            </div>
+                        </div>
+                        <form id="rewardForm" class="reward-form">
+                            <div class="form-group">
+                                <label for="rewardName">ชื่อรางวัล *</label>
+                                <input type="text" id="rewardName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="rewardDesc">รายละเอียด *</label>
+                                <textarea id="rewardDesc" rows="3" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="rewardPoints">คะแนนที่ใช้แลก *</label>
+                                <input type="number" id="rewardPoints" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="rewardCategory">หมวดหมู่ *</label>
+                                <select id="rewardCategory" required>
+                                    <option value="electronics">อิเล็กทรอนิกส์</option>
+                                    <option value="giftcard">บัตรของขวัญ</option>
+                                    <option value="experience">ประสบการณ์</option>
+                                    <option value="lifestyle">ไลฟ์สไตล์</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="rewardImage">รูปภาพ (ใส่ลิงก์รูปหรืออีโมจิ) *</label>
+                                <input type="text" id="rewardImage" placeholder="https://... หรือ 🎁" required>
+                            </div>
+                            <div class="reward-preview" id="rewardPreview"></div>
+                            <button type="submit" class="btn-primary" id="rewardSubmitBtn">เพิ่มของรางวัล</button>
+                        </form>
+                    </div>
+
+                    <div class="card admin-rewards-card">
+                        <h3>รายการของรางวัล</h3>
+                        <div class="admin-rewards-list" id="adminRewardsList"></div>
+                    </div>
+                </div>
             </section>
 
             <!-- Allocate Points View (Manager Only) -->
@@ -281,6 +326,14 @@
                                             <div class="smart-letter">T</div>
                                             <div class="smart-title">Think Customers</div>
                                             <div class="smart-desc">การทำความเข้าใจความคาดหวังของลูกค้า</div>
+                                        </div>
+                                    </label>
+                                    <label class="smart-option admin-only" style="display: none;">
+                                        <input type="radio" name="smartValue" value="O" required>
+                                        <div class="smart-card">
+                                            <div class="smart-letter">O</div>
+                                            <div class="smart-title">Other</div>
+                                            <div class="smart-desc">เหตุผลอื่นๆ ที่ไม่อยู่ใน SMART</div>
                                         </div>
                                     </label>
                                 </div>

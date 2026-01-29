@@ -58,7 +58,7 @@ create table allocations (
   employee_name text not null,
   points integer not null default 1,
   reason text not null,
-  smart_value text not null check (smart_value in ('S', 'M', 'A', 'R', 'T')),
+  smart_value text not null check (smart_value in ('S', 'M', 'A', 'R', 'T', 'O')),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -102,6 +102,36 @@ create policy "Anyone can create transactions"
   with check (true);
 
 -- ===========================
+-- 5. Rewards Table
+create table rewards (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  description text not null,
+  points integer not null,
+  category text not null,
+  image_url text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table rewards enable row level security;
+
+create policy "Anyone can read rewards"
+  on rewards for select
+  using (true);
+
+create policy "Anyone can create rewards"
+  on rewards for insert
+  with check (true);
+
+create policy "Anyone can update rewards"
+  on rewards for update
+  using (true);
+
+create policy "Anyone can delete rewards"
+  on rewards for delete
+  using (true);
+
+-- ===========================
 -- Insert Demo Data
 -- ===========================
 
@@ -122,3 +152,14 @@ insert into employees (employee_id, points, total_earned, tier) values
   ('EMP003', 220, 350, 'Gold'),
   ('EMP004', 45, 90, 'Bronze'),
   ('EMP005', 180, 280, 'Silver');
+
+-- Insert demo rewards
+insert into rewards (name, description, points, category, image_url) values
+  ('หูฟังบลูทูธ Premium', 'หูฟังไร้สายคุณภาพสูง เสียงใส ตัดเสียงรบกวน', 150, 'electronics', '🎧'),
+  ('บัตรกำนัล Starbucks 500 บาท', 'บัตรกำนัลสตาร์บัคส์ มูลค่า 500 บาท', 50, 'giftcard', '☕'),
+  ('Smart Watch', 'นาฬิกาอัจฉริยะ ติดตามสุขภาพ ออกกำลังกาย', 300, 'electronics', '⌚'),
+  ('คอร์สออนไลน์ Udemy', 'เลือกคอร์สเรียนออนไลน์ได้ 1 คอร์ส', 80, 'experience', '📚'),
+  ('กระเป๋าเป้แบรนด์เนม', 'กระเป๋าเป้สุดเท่ ใส่โน้ตบุ๊คได้', 200, 'lifestyle', '🎒'),
+  ('บัตรชมภาพยนตร์ 2 ที่นั่ง', 'บัตรชมหนังฟรี 2 ที่นั่ง ทุกโรงในเครือ', 60, 'experience', '🎬'),
+  ('Power Bank 20000mAh', 'แบตสำรอง ชาร์จเร็ว รองรับทุกอุปกรณ์', 100, 'electronics', '🔋'),
+  ('บัตรกำนัล Central 1000 บาท', 'บัตรกำนัลห้างเซ็นทรัล มูลค่า 1000 บาท', 100, 'giftcard', '🎁');

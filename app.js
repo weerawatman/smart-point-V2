@@ -23,7 +23,8 @@ const APP_STATE = {
     rewards: [],
     allocations: [],
     transactions: [],
-    adminBulkRows: []
+    adminBulkRows: [],
+    editingRewardId: null
 };
 
 // SMART Culture Values
@@ -47,8 +48,71 @@ const SMART_VALUES = {
     T: {
         name: 'Think Customers & Think Value',
         desc: 'การทำความเข้าใจความคาดหวังของลูกค้า (ทั้งภายในและภายนอก) อย่างต่อเนื่อง และใส่ใจในคุณค่าของงานและบริการที่ส่งมอบให้ลูกค้า'
+    },
+    O: {
+        name: 'Other',
+        desc: 'เหตุผลอื่นๆ ที่ไม่อยู่ใน SMART'
     }
 };
+
+const DEFAULT_REWARDS = [
+    {
+        name: 'หูฟังบลูทูธ Premium',
+        description: 'หูฟังไร้สายคุณภาพสูง เสียงใส ตัดเสียงรบกวน',
+        points: 150,
+        category: 'electronics',
+        image_url: '🎧'
+    },
+    {
+        name: 'บัตรกำนัล Starbucks 500 บาท',
+        description: 'บัตรกำนัลสตาร์บัคส์ มูลค่า 500 บาท',
+        points: 50,
+        category: 'giftcard',
+        image_url: '☕'
+    },
+    {
+        name: 'Smart Watch',
+        description: 'นาฬิกาอัจฉริยะ ติดตามสุขภาพ ออกกำลังกาย',
+        points: 300,
+        category: 'electronics',
+        image_url: '⌚'
+    },
+    {
+        name: 'คอร์สออนไลน์ Udemy',
+        description: 'เลือกคอร์สเรียนออนไลน์ได้ 1 คอร์ส',
+        points: 80,
+        category: 'experience',
+        image_url: '📚'
+    },
+    {
+        name: 'กระเป๋าเป้แบรนด์เนม',
+        description: 'กระเป๋าเป้สุดเท่ ใส่โน้ตบุ๊คได้',
+        points: 200,
+        category: 'lifestyle',
+        image_url: '🎒'
+    },
+    {
+        name: 'บัตรชมภาพยนตร์ 2 ที่นั่ง',
+        description: 'บัตรชมหนังฟรี 2 ที่นั่ง ทุกโรงในเครือ',
+        points: 60,
+        category: 'experience',
+        image_url: '🎬'
+    },
+    {
+        name: 'Power Bank 20000mAh',
+        description: 'แบตสำรอง ชาร์จเร็ว รองรับทุกอุปกรณ์',
+        points: 100,
+        category: 'electronics',
+        image_url: '🔋'
+    },
+    {
+        name: 'บัตรกำนัล Central 1000 บาท',
+        description: 'บัตรกำนัลห้างเซ็นทรัล มูลค่า 1000 บาท',
+        points: 100,
+        category: 'giftcard',
+        image_url: '🎁'
+    }
+];
 
 // ===========================
 // Initialize Data from Supabase
@@ -121,6 +185,23 @@ async function initializeDemoData() {
         APP_STATE.transactions = transactions || [];
         console.log('✅ Loaded transactions:', transactions?.length || 0);
 
+        // Fetch rewards
+        const { data: rewards, error: rewardsError } = await supabase
+            .from('rewards')
+            .select('*')
+            .order('points', { ascending: true });
+
+        if (rewardsError) {
+            console.warn('⚠️ Rewards load failed, using defaults:', rewardsError);
+            APP_STATE.rewards = DEFAULT_REWARDS.map((reward, index) => ({
+                id: `local-${index + 1}`,
+                ...reward
+            }));
+        } else {
+            APP_STATE.rewards = rewards || [];
+            console.log('✅ Loaded rewards:', rewards?.length || 0);
+        }
+
         console.log('✅ All data loaded from Supabase successfully!');
 
         // Hide loading indicator and show login form
@@ -147,74 +228,6 @@ async function initializeDemoData() {
             `;
         }
     }
-
-    // Demo Rewards
-    APP_STATE.rewards = [
-        {
-            id: 'r1',
-            name: 'หูฟังบลูทูธ Premium',
-            desc: 'หูฟังไร้สายคุณภาพสูง เสียงใส ตัดเสียงรบกวน',
-            points: 150,
-            category: 'electronics',
-            image: '🎧'
-        },
-        {
-            id: 'r2',
-            name: 'บัตรกำนัล Starbucks 500 บาท',
-            desc: 'บัตรกำนัลสตาร์บัคส์ มูลค่า 500 บาท',
-            points: 50,
-            category: 'giftcard',
-            image: '☕'
-        },
-        {
-            id: 'r3',
-            name: 'Smart Watch',
-            desc: 'นาฬิกาอัจฉริยะ ติดตามสุขภาพ ออกกำลังกาย',
-            points: 300,
-            category: 'electronics',
-            image: '⌚'
-        },
-        {
-            id: 'r4',
-            name: 'คอร์สออนไลน์ Udemy',
-            desc: 'เลือกคอร์สเรียนออนไลน์ได้ 1 คอร์ส',
-            points: 80,
-            category: 'experience',
-            image: '📚'
-        },
-        {
-            id: 'r5',
-            name: 'กระเป๋าเป้แบรนด์เนม',
-            desc: 'กระเป๋าเป้สุดเท่ ใส่โน้ตบุ๊คได้',
-            points: 200,
-            category: 'lifestyle',
-            image: '🎒'
-        },
-        {
-            id: 'r6',
-            name: 'บัตรชมภาพยนตร์ 2 ที่นั่ง',
-            desc: 'บัตรชมหนังฟรี 2 ที่นั่ง ทุกโรงในเครือ',
-            points: 60,
-            category: 'experience',
-            image: '🎬'
-        },
-        {
-            id: 'r7',
-            name: 'Power Bank 20000mAh',
-            desc: 'แบตสำรอง ชาร์จเร็ว รองรับทุกอุปกรณ์',
-            points: 100,
-            category: 'electronics',
-            image: '🔋'
-        },
-        {
-            id: 'r8',
-            name: 'บัตรกำนัล Central 1000 บาท',
-            desc: 'บัตรกำนัลห้างเซ็นทรัล มูลค่า 1000 บาท',
-            points: 100,
-            category: 'giftcard',
-            image: '🎁'
-        }
-    ];
 
     // Note: We no longer use localStorage to ensure data is always synced from Supabase
 }
@@ -492,11 +505,11 @@ function renderRewards() {
 
     grid.innerHTML = filtered.map(reward => `
         <div class="reward-card" onclick="showRedemptionModal('${reward.id}')">
-            <div class="reward-image">${reward.image}</div>
+            <div class="reward-image">${getRewardImageHtml(reward)}</div>
             <div class="reward-content">
                 <span class="reward-category">${getCategoryName(reward.category)}</span>
                 <h3 class="reward-name">${reward.name}</h3>
-                <p class="reward-desc">${reward.desc}</p>
+                <p class="reward-desc">${reward.description || reward.desc || ''}</p>
                 <div class="reward-footer">
                     <span class="reward-points">${reward.points} คะแนน</span>
                     ${APP_STATE.currentUser.role === 'employee' ? `
@@ -508,6 +521,17 @@ function renderRewards() {
             </div>
         </div>
     `).join('');
+
+    renderRewardsAdminPanel();
+}
+
+function getRewardImageHtml(reward) {
+    const image = reward.image_url || reward.image || '🎁';
+    const isUrl = typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('data:'));
+    if (isUrl) {
+        return `<img src="${image}" alt="${reward.name}">`;
+    }
+    return image;
 }
 
 function getCategoryName(category) {
@@ -551,9 +575,9 @@ function showRedemptionModal(rewardId) {
 
     body.innerHTML = `
         <div style="text-align: center;">
-            <div style="font-size: 5rem; margin-bottom: 1rem;">${reward.image}</div>
+            <div style="font-size: 5rem; margin-bottom: 1rem;">${getRewardImageHtml(reward)}</div>
             <h3 style="margin-bottom: 0.5rem;">${reward.name}</h3>
-            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">${reward.desc}</p>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">${reward.description || reward.desc || ''}</p>
             
             <div style="background: var(--bg-tertiary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
@@ -592,6 +616,183 @@ function showRedemptionModal(rewardId) {
     modal.classList.add('active');
 }
 
+function renderRewardsAdminPanel() {
+    if (APP_STATE.currentUser.role !== 'admin') return;
+
+    const list = document.getElementById('adminRewardsList');
+    const form = document.getElementById('rewardForm');
+    const cancelBtn = document.getElementById('cancelRewardEdit');
+    const preview = document.getElementById('rewardPreview');
+    const imageInput = document.getElementById('rewardImage');
+    const submitBtn = document.getElementById('rewardSubmitBtn');
+
+    if (!list || !form) return;
+
+    list.innerHTML = APP_STATE.rewards.map(reward => `
+        <div class="admin-reward-item">
+            <div class="admin-reward-info">
+                <strong>${reward.name}</strong>
+                <span>${reward.points} คะแนน • ${getCategoryName(reward.category)}</span>
+            </div>
+            <div class="admin-reward-actions">
+                <button class="btn-outline" data-action="edit" data-id="${reward.id}">แก้ไข</button>
+                <button class="btn-outline" data-action="delete" data-id="${reward.id}">ลบ</button>
+            </div>
+        </div>
+    `).join('');
+
+    list.onclick = (event) => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        const id = button.dataset.id;
+        const action = button.dataset.action;
+        if (!id || !action) return;
+
+        if (action === 'edit') {
+            startRewardEdit(id);
+        } else if (action === 'delete') {
+            deleteReward(id);
+        }
+    };
+
+    form.onsubmit = handleRewardSubmit;
+
+    if (imageInput) {
+        imageInput.addEventListener('input', () => {
+            updateRewardPreview(imageInput.value);
+        });
+    }
+
+    if (cancelBtn) {
+        cancelBtn.onclick = resetRewardForm;
+        cancelBtn.style.display = APP_STATE.editingRewardId ? '' : 'none';
+    }
+
+    if (preview) {
+        updateRewardPreview(imageInput?.value || '');
+    }
+
+    if (submitBtn) {
+        submitBtn.textContent = APP_STATE.editingRewardId ? 'บันทึกการแก้ไข' : 'เพิ่มของรางวัล';
+    }
+}
+
+function updateRewardPreview(value) {
+    const preview = document.getElementById('rewardPreview');
+    if (!preview) return;
+
+    if (!value) {
+        preview.textContent = 'ตัวอย่างรูปภาพจะอยู่ที่นี่';
+        return;
+    }
+
+    const isUrl = value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:');
+    preview.innerHTML = isUrl ? `<img src="${value}" alt="preview">` : `<span style="font-size: 2.5rem;">${value}</span>`;
+}
+
+function startRewardEdit(rewardId) {
+    const reward = APP_STATE.rewards.find(r => r.id === rewardId);
+    if (!reward) return;
+
+    APP_STATE.editingRewardId = rewardId;
+    document.getElementById('rewardName').value = reward.name;
+    document.getElementById('rewardDesc').value = reward.description || reward.desc || '';
+    document.getElementById('rewardPoints').value = reward.points;
+    document.getElementById('rewardCategory').value = reward.category;
+    document.getElementById('rewardImage').value = reward.image_url || reward.image || '';
+    updateRewardPreview(reward.image_url || reward.image || '');
+    renderRewardsAdminPanel();
+}
+
+function resetRewardForm() {
+    APP_STATE.editingRewardId = null;
+    const form = document.getElementById('rewardForm');
+    if (form) form.reset();
+    updateRewardPreview('');
+    renderRewardsAdminPanel();
+}
+
+async function handleRewardSubmit(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('rewardName').value.trim();
+    const description = document.getElementById('rewardDesc').value.trim();
+    const points = Math.max(1, Number(document.getElementById('rewardPoints').value || 1));
+    const category = document.getElementById('rewardCategory').value;
+    const imageUrl = document.getElementById('rewardImage').value.trim();
+
+    if (!name || !description || !points || !category || !imageUrl) {
+        showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+        return;
+    }
+
+    try {
+        if (APP_STATE.editingRewardId) {
+            const { error } = await supabase
+                .from('rewards')
+                .update({
+                    name,
+                    description,
+                    points,
+                    category,
+                    image_url: imageUrl
+                })
+                .eq('id', APP_STATE.editingRewardId);
+
+            if (error) throw error;
+
+            const reward = APP_STATE.rewards.find(r => r.id === APP_STATE.editingRewardId);
+            if (reward) {
+                reward.name = name;
+                reward.description = description;
+                reward.points = points;
+                reward.category = category;
+                reward.image_url = imageUrl;
+            }
+
+            showToast('แก้ไขของรางวัลสำเร็จ', 'success');
+        } else {
+            const { data, error } = await supabase
+                .from('rewards')
+                .insert([{ name, description, points, category, image_url: imageUrl }])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            APP_STATE.rewards.unshift(data);
+            showToast('เพิ่มของรางวัลสำเร็จ', 'success');
+        }
+
+        resetRewardForm();
+        renderRewards();
+    } catch (error) {
+        console.error('Error saving reward:', error);
+        showToast('เกิดข้อผิดพลาดในการบันทึกของรางวัล', 'error');
+    }
+}
+
+async function deleteReward(rewardId) {
+    const reward = APP_STATE.rewards.find(r => r.id === rewardId);
+    if (!reward) return;
+
+    try {
+        const { error } = await supabase
+            .from('rewards')
+            .delete()
+            .eq('id', rewardId);
+
+        if (error) throw error;
+
+        APP_STATE.rewards = APP_STATE.rewards.filter(r => r.id !== rewardId);
+        showToast('ลบของรางวัลแล้ว', 'success');
+        renderRewards();
+    } catch (error) {
+        console.error('Error deleting reward:', error);
+        showToast('ลบของรางวัลไม่สำเร็จ', 'error');
+    }
+}
+
 function closeRedemptionModal() {
     document.getElementById('redemptionModal').classList.remove('active');
 }
@@ -626,15 +827,6 @@ function confirmRedemption(rewardId) {
 // ===========================
 // Manager Allocation
 // ===========================
-function getManagerRemainingAllocations() {
-    const thisMonthAllocations = APP_STATE.allocations.filter(a =>
-        a.manager_id === APP_STATE.currentUser.employee_id &&
-        isThisMonth(a.created_at)
-    );
-
-    return Math.max(0, 5 - thisMonthAllocations.length);
-}
-
 function renderAllocationForm() {
     const employeeSelect = document.getElementById('employeeSelect');
     const groupEmployeeList = document.getElementById('groupEmployeeList');
@@ -847,6 +1039,7 @@ function parseCsvRows(text) {
 
 function updateAllocationInfo() {
     const infoDiv = document.getElementById('allocationInfo');
+    const employeeId = document.getElementById('employeeSelect')?.value;
 
     if (APP_STATE.currentUser.role === 'admin') {
         infoDiv.className = 'allocation-info success';
@@ -854,10 +1047,17 @@ function updateAllocationInfo() {
         return;
     }
 
-    // Check manager's monthly allocation limit (5 points total per month)
+    if (!employeeId) {
+        infoDiv.className = 'allocation-info warning';
+        infoDiv.innerHTML = 'กรุณาเลือกพนักงานเพื่อดูโควต้า';
+        return;
+    }
+
+    // Check manager's monthly allocation limit (5 points per employee per month)
     const thisMonthAllocations = APP_STATE.allocations.filter(a =>
         a.manager_id === APP_STATE.currentUser.employee_id &&
-        isThisMonth(a.created_at)
+        isThisMonth(a.created_at) &&
+        normalizeEmployeeId(a.employee_id || a.employeeId) === normalizeEmployeeId(employeeId)
     );
 
     const totalThisMonth = thisMonthAllocations.length; // Each allocation is 1 point
@@ -865,13 +1065,13 @@ function updateAllocationInfo() {
 
     if (remaining <= 0) {
         infoDiv.className = 'allocation-info error';
-        infoDiv.innerHTML = `❌ คุณให้คะแนนครบ 5 ครั้งในเดือนนี้แล้ว (โควต้าหมด)`;
+        infoDiv.innerHTML = `❌ คุณให้คะแนนครบ 5 คะแนนให้พนักงานคนนี้ในเดือนนี้แล้ว`;
     } else if (remaining <= 2) {
         infoDiv.className = 'allocation-info warning';
-        infoDiv.innerHTML = `⚠️ คุณเหลือโควต้าอีก ${remaining} ครั้งสำหรับเดือนนี้`;
+        infoDiv.innerHTML = `⚠️ คุณเหลือโควต้าอีก ${remaining} คะแนนสำหรับพนักงานคนนี้ในเดือนนี้`;
     } else {
         infoDiv.className = 'allocation-info success';
-        infoDiv.innerHTML = `✅ คุณสามารถให้คะแนนได้อีก ${remaining} ครั้งในเดือนนี้`;
+        infoDiv.innerHTML = `✅ คุณสามารถให้คะแนนได้อีก ${remaining} คะแนนสำหรับพนักงานคนนี้ในเดือนนี้`;
     }
 }
 
@@ -910,23 +1110,15 @@ async function handleAllocationSubmit(e) {
     }
 
     if (APP_STATE.currentUser.role === 'manager') {
-        // Check manager's monthly limit (5 allocations total per month)
+        // Check manager's monthly limit (5 points per employee per month)
         const thisMonthAllocations = APP_STATE.allocations.filter(a =>
             a.manager_id === APP_STATE.currentUser.employee_id &&
-            isThisMonth(a.created_at)
-        );
-
-        if (thisMonthAllocations.length >= 5) {
-            showToast('คุณให้คะแนนครบ 5 ครั้งในเดือนนี้แล้ว (โควต้าหมด)', 'error');
-            return;
-        }
-
-        const alreadyAllocatedToEmployee = thisMonthAllocations.some(a =>
+            isThisMonth(a.created_at) &&
             normalizeEmployeeId(a.employee_id || a.employeeId) === normalizeEmployeeId(employeeId)
         );
 
-        if (alreadyAllocatedToEmployee) {
-            showToast('เดือนนี้คุณให้คะแนนพนักงานคนนี้แล้ว', 'error');
+        if (thisMonthAllocations.length >= 5) {
+            showToast('คุณให้คะแนนครบ 5 คะแนนสำหรับพนักงานคนนี้ในเดือนนี้แล้ว', 'error');
             return;
         }
     }
@@ -1144,7 +1336,11 @@ async function handleAllocationSubmit(e) {
 
         const remaining = APP_STATE.currentUser.role === 'admin'
             ? null
-            : getManagerRemainingAllocations();
+            : Math.max(0, 5 - APP_STATE.allocations.filter(a =>
+                a.manager_id === APP_STATE.currentUser.employee_id &&
+                isThisMonth(a.created_at) &&
+                normalizeEmployeeId(a.employee_id || a.employeeId) === normalizeEmployeeId(employeeId)
+            ).length);
         showAllocationResultModal({
             employeeName: employee.name,
             remaining,
