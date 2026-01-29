@@ -176,8 +176,8 @@ function handleLogin(e) {
     const password = document.getElementById('password').value;
     const errorDiv = document.getElementById('loginError');
 
-    // Find user
-    const user = APP_STATE.users.find(u => u.id === employeeId && u.password === password);
+    // Find user from loaded data
+    const user = APP_STATE.users.find(u => u.employee_id === employeeId && u.password === password);
 
     if (!user) {
         errorDiv.textContent = '❌ รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง';
