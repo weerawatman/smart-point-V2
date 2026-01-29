@@ -4,8 +4,14 @@
 const SUPABASE_URL = 'https://ynywmrupnuiasomqlndh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlueXdtcnVwbnVpYXNvbXFsbmRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NjMzNzgsImV4cCI6MjA4NTIzOTM3OH0.qoz5BuA_RL5sStGtZl33uV6n4Nxie1AwC0GHOiZ5V4w';
 
-// Initialize Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Initialize Supabase client (check if not already initialized)
+let supabase;
+if (typeof window.supabase !== 'undefined' && !supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase client initialized');
+} else if (!supabase) {
+    console.error('❌ Supabase library not loaded');
+}
 
 // ===========================
 // Application State
