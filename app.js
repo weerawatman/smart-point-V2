@@ -213,14 +213,7 @@ async function initializeDemoData() {
         }
     ];
 
-    // Load from localStorage if available
-    const savedData = localStorage.getItem('rewardsAppData');
-    if (savedData) {
-        const data = JSON.parse(savedData);
-        APP_STATE.employees = data.employees || APP_STATE.employees;
-        APP_STATE.allocations = data.allocations || [];
-        APP_STATE.transactions = data.transactions || [];
-    }
+    // Note: We no longer use localStorage to ensure data is always synced from Supabase
 }
 
 // ===========================
@@ -353,7 +346,7 @@ function updateDashboard() {
     } else {
         // Manager view - show summary
         const totalAllocations = APP_STATE.allocations.length;
-        const thisMonth = APP_STATE.allocations.filter(a => isThisMonth(a.date)).length;
+        const thisMonth = APP_STATE.allocations.filter(a => isThisMonth(a.created_at)).length;
 
         document.getElementById('currentPoints').textContent = totalAllocations;
         document.getElementById('totalEarned').textContent = thisMonth;
