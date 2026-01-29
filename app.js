@@ -47,6 +47,8 @@ const SMART_VALUES = {
 // Initialize Data from Supabase
 // ===========================
 async function initializeDemoData() {
+    console.log('🔄 Loading data from Supabase...');
+
     try {
         // Fetch users
         const { data: users, error: usersError } = await supabase
@@ -55,6 +57,7 @@ async function initializeDemoData() {
 
         if (usersError) throw usersError;
         APP_STATE.users = users;
+        console.log('✅ Loaded users:', users);
 
         // Fetch employees
         const { data: employees, error: employeesError } = await supabase
@@ -63,6 +66,7 @@ async function initializeDemoData() {
 
         if (employeesError) throw employeesError;
         APP_STATE.employees = employees;
+        console.log('✅ Loaded employees:', employees);
 
         // Fetch allocations
         const { data: allocations, error: allocationsError } = await supabase
@@ -72,6 +76,7 @@ async function initializeDemoData() {
 
         if (allocationsError) throw allocationsError;
         APP_STATE.allocations = allocations || [];
+        console.log('✅ Loaded allocations:', allocations?.length || 0);
 
         // Fetch transactions
         const { data: transactions, error: transactionsError } = await supabase
@@ -81,11 +86,23 @@ async function initializeDemoData() {
 
         if (transactionsError) throw transactionsError;
         APP_STATE.transactions = transactions || [];
+        console.log('✅ Loaded transactions:', transactions?.length || 0);
 
-        console.log('✅ Data loaded from Supabase successfully');
+        console.log('✅ All data loaded from Supabase successfully!');
+
+        // Hide loading indicator and show login form
+        const loadingDiv = document.getElementById('loadingIndicator');
+        const loginForm = document.getElementById('loginForm');
+        if (loadingDiv) loadingDiv.style.display = 'none';
+        if (loginForm) loginForm.style.display = 'block';
+
     } catch (error) {
         console.error('❌ Error loading data from Supabase:', error);
-        showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: ' + error.message);
+
+        // Hide loading indicator
+        const loadingDiv = document.getElementById('loadingIndicator');
+        if (loadingDiv) loadingDiv.style.display = 'none';
     }
 
     // Demo Rewards

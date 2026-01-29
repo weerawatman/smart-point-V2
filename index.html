@@ -16,24 +16,29 @@
 <body>
     <!-- Login Modal -->
     <div id="loginModal" class="modal active">
-        <div class="modal-content login-modal">
+        <div class="modal-content">
             <div class="login-header">
-                <h1>🎁 SMART Rewards</h1>
-                <p>ระบบจัดการแต้มรางวัล</p>
+                <div class="logo">🎁 SMART<br><span>Rewards</span></div>
+                <p>ระบบจัดการแต้มรีวอร์ด</p>
             </div>
-            <form id="loginForm" class="login-form">
+
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" style="text-align: center; padding: 20px;">
+                <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+                <div>กำลังโหลดข้อมูล...</div>
+            </div>
+
+            <form id="loginForm" style="display: none;">
                 <div class="form-group">
-                    <label for="employeeId">รหัสพนักงาน</label>
-                    <input type="text" id="employeeId" required placeholder="กรุณาใส่รหัสพนักงาน"
-                        autocomplete="username">
+                    <label>รหัสพนักงาน</label>
+                    <input type="text" id="employeeId" placeholder="กรอกรหัสพนักงาน" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">รหัสผ่าน</label>
-                    <input type="password" id="password" required placeholder="กรุณาใส่รหัสผ่าน"
-                        autocomplete="current-password">
+                    <label>รหัสผ่าน</label>
+                    <input type="password" id="password" placeholder="กรอกรหัสผ่าน" required>
                 </div>
-                <div id="loginError" class="login-error" style="display: none;"></div>
-                <button type="submit" class="btn-primary" style="width: 100%;">เข้าสู่ระบบ</button>
+                <div id="loginError" class="login-error"></div>
+                <button type="submit" class="btn btn-primary">เข้าระบบ</button>
             </form>
         </div>
     </div>
